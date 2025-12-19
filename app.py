@@ -11,6 +11,36 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="AI Property Price Predictor", initial_sidebar_state="expanded")
 
+# ✅ FIX 1: Create fresh map object function
+def create_map(lat, lon, location_name=None):
+    """Create a fresh map object every time - never reuse"""
+    m = folium.Map(location=[lat, lon], zoom_start=15, tiles='OpenStreetMap')
+    
+    # Add marker with string-only properties
+    folium.Marker(
+        [lat, lon],
+        popup=f"<b>{location_name or 'Selected Location'}</b><br>Lat: {lat:.5f}<br>Lon: {lon:.5f}",
+        tooltip="Selected Location",
+        icon=folium.Icon(color="red", icon="home", prefix="fa")
+    ).add_to(m)
+    
+    # Add analysis radius circle
+    folium.Circle(
+        location=[lat, lon],
+        radius=1000,
+        popup="Nearby amenities search radius: 1km",
+        color="#3186cc",
+        fill=True,
+        fillColor="#3186cc",
+        fillOpacity=0.1
+    ).add_to(m)
+    
+    # Add plugins
+    MousePosition().add_to(m)
+    Fullscreen().add_to(m)
+    
+    return m
+
 # Custom CSS
 st.markdown("""
 <style>
@@ -65,7 +95,6 @@ if search_method == "📌 Enter Coordinates":
         st.session_state.selected_lon = lon_input
         st.session_state.location_name = f"{lat_input:.5f}, {lon_input:.5f}"
         st.session_state.location_features = None  # Clear cached features
-        st.rerun()
 st.sidebar.markdown("---")
 st.sidebar.header("🏡 Property Details")
 bedrooms = st.sidebar.slider("Bedrooms", 1, 6, 3, key="bed")
@@ -77,56 +106,52 @@ col_map, col_info = st.columns([2, 1])
 
 with col_map:
     if lat and lon:
-        m = folium.Map(location=[lat, lon], zoom_start=15, tiles='OpenStreetMap')
+        # ✅ FIX 1: Fresh map creation
+        m = create_map(lat, lon, location_name)
         
-        # Add marker
-        folium.Marker(
-            [lat, lon],
-            popup=folium.Popup(f"<b>{location_name or 'Selected Location'}</b><br>Lat: {lat:.5f}<br>Lon: {lon:.5f}", max_width=200),
-            tooltip="Selected Location",
-            icon=folium.Icon(color="red", icon="home", prefix="fa")
-        ).add_to(m)
+        # ✅ FIX 3: Cloud-safe st_folium with error handling
+        map_data = None
+        try:
+            map_data = st_folium(
+                m,
+                height=600,
+                width=700,
+                key="main_map"
+            )
+        except Exception as e:
+            st.warning("⚠️ Map temporarily unavailable. Please refresh the page.")
         
-        # Add analysis radius circle
-        folium.Circle(
-            location=[lat, lon],
-            radius=1000,
-            popup="Nearby amenities search radius: 1km",
-            color="#3186cc",
-            fill=True,
-            fillColor="#3186cc",
-            fillOpacity=0.1
-        ).add_to(m)
-        
-        # Add plugins
-        MousePosition().add_to(m)
-        Fullscreen().add_to(m)
-        
-        # Handle map clicks
-        if search_method == "🗺️ Click on Map":
-            map_data = st_folium(m, height=600, key="main_map")
-            if map_data and map_data.get("last_clicked"):
-                clicked = map_data["last_clicked"]
-                st.session_state.selected_lat = float(clicked["lat"])
-                st.session_state.selected_lon = float(clicked["lng"])
-                st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
-                st.session_state.location_features = None  # Clear cached features
-                st.rerun()
-        else:
-            st_folium(m, height=600, key="main_map")
+        # ✅ FIX 2: Handle map clicks WITHOUT st.rerun()
+        if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
+            clicked = map_data["last_clicked"]
+            st.session_state.selected_lat = float(clicked["lat"])
+            st.session_state.selected_lon = float(clicked["lng"])
+            st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
+            st.session_state.location_features = None
     else:
-        m = folium.Map(location=[28.6139, 77.2090], zoom_start=10)
-        if search_method == "🗺️ Click on Map":
-            map_data = st_folium(m, height=600, key="main_map")
-            if map_data and map_data.get("last_clicked"):
-                clicked = map_data["last_clicked"]
-                st.session_state.selected_lat = float(clicked["lat"])
-                st.session_state.selected_lon = float(clicked["lng"])
-                st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
-                st.session_state.location_features = None  # Clear cached features
-                st.rerun()
-        else:
-            st_folium(m, height=600, key="main_map")
+        # Default map (no location selected yet)
+        m_default = folium.Map(location=[28.6139, 77.2090], zoom_start=10)
+        
+        # ✅ FIX 3: Cloud-safe st_folium with error handling
+        map_data = None
+        try:
+            map_data = st_folium(
+                m_default,
+                height=600,
+                width=700,
+                key="main_map"
+            )
+        except Exception as e:
+            st.warning("⚠️ Map temporarily unavailable. Please refresh the page.")
+        
+        # ✅ FIX 2: Handle map clicks WITHOUT st.rerun()
+        if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
+            clicked = map_data["last_clicked"]
+            st.session_state.selected_lat = float(clicked["lat"])
+            st.session_state.selected_lon = float(clicked["lng"])
+            st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
+            st.session_state.location_features = None
+        
         st.info("👆 Select a location to get started")
 
 # Location Info Panel
