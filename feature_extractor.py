@@ -11,7 +11,7 @@ from sentinelhub import (
     BBox,
     bbox_to_dimensions
 )
-from .sentinel_config import get_sh_config
+from sentinel_config import get_sh_config
 import requests
 import time
 
