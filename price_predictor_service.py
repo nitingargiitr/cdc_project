@@ -24,16 +24,11 @@ def load_price_model():
     return None
 
 
+@st.cache_data(ttl=3600, max_entries=128)
 def get_features(lat: float, lon: float) -> Dict:
-    """
-    Get satellite features (NDVI, NDWI, road density) for a location.
-    
-    Args:
-        lat: Latitude
-        lon: Longitude
-        
-    Returns:
-        Dict with keys: ndvi, ndwi, road_density
+    """Cached wrapper: return satellite features (NDVI, NDWI, road density).
+
+    Caching reduces repeated SentinelHub/Overpass calls for the same location.
     """
     try:
         features = extract_all_features(lat, lon)
@@ -152,17 +147,11 @@ def predict_price(bedrooms: int, bathrooms: float, sqft_living: int, lat: float,
         }
 
 
+@st.cache_data(ttl=3600, max_entries=128)
 def get_nearby_amenities(lat: float, lon: float, radius: int = 1000) -> Dict:
-    """
-    Get nearby amenities for a location.
-    
-    Args:
-        lat: Latitude
-        lon: Longitude
-        radius: Search radius in meters
-        
-    Returns:
-        Dict with: total, by_category, convenience_score, convenience_rating, error
+    """Cached wrapper: return nearby amenities using Overpass.
+
+    Caching reduces Overpass requests for repeated lookups.
     """
     try:
         amenities = get_amenities_data(lat, lon, radius)

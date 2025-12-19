@@ -192,22 +192,22 @@ if lat and lon:
             # Use local service instead of HTTP
             result = predict_price(bedrooms, bathrooms, sqft, lat, lon)
             price = result.get("predicted_price")
-                
-                # Price Display
-                col_price1, col_price2, col_price3 = st.columns(3)
-                with col_price1:
-                    st.metric("Predicted Price", f"${price:,.0f}")
-                with col_price2:
-                    price_per_sqft_val = price / sqft if sqft > 0 else 0
-                    st.metric("Price/sqft", f"${price_per_sqft_val:,.0f}")
-                with col_price3:
-                    st.metric("Property Size", f"{sqft:,} sqft")
-                
-                # Explanation
-                st.info(f"Why this price? {result.get('explanation', '')}")
-                
-                if result.get("location_context"):
-                    st.caption(f"{result['location_context']}")
+
+            # Price Display
+            col_price1, col_price2, col_price3 = st.columns(3)
+            with col_price1:
+                st.metric("Predicted Price", f"${price:,.0f}")
+            with col_price2:
+                price_per_sqft_val = price / sqft if sqft > 0 else 0
+                st.metric("Price/sqft", f"${price_per_sqft_val:,.0f}")
+            with col_price3:
+                st.metric("Property Size", f"{sqft:,} sqft")
+
+            # Explanation
+            st.info(f"Why this price? {result.get('explanation', '')}")
+
+            if result.get("location_context"):
+                st.caption(f"{result['location_context']}")
                 
                 # Feature Breakdown
                 with st.expander("Feature Breakdown"):
