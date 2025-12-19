@@ -174,9 +174,15 @@ with col_info:
 
         features = st.session_state.location_features or {}
         if "error" not in features:
-            st.metric("🌳 Greenery", f"{features.get('ndvi', 0):.3f}")
-            st.metric("💧 Water", f"{features.get('ndwi', 0):.3f}")
-            st.metric("🛣️ Roads", f"{features.get('road_density', 0):.3f}")
+            ndvi_val = features.get('ndvi', 0)
+            ndwi_val = features.get('ndwi', 0)
+            road_val = features.get('road_density', 0.3)
+            st.metric("🌳 Greenery", f"{ndvi_val:.3f}")
+            st.metric("💧 Water", f"{ndwi_val:.3f}")
+            st.metric("🛣️ Roads", f"{road_val:.3f}")
+            # Warn if all features are zero/default (likely API/credentials issue)
+            if ndvi_val == 0 and ndwi_val == 0 and (road_val == 0 or road_val == 0.3):
+                st.warning("Satellite features are all zero or default. Check Sentinel Hub credentials or API access.")
 
 # Main Analysis Section
 if lat and lon:
