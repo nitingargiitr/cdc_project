@@ -249,68 +249,66 @@ if lat and lon:
                 else:
                     # Total count
                     total = amenities_data.get("total", 0)
+                    
+                    if total == 0:
+                        st.info("No amenities found in this range. Try expanding the search radius.")
+                    else:
+                        st.subheader(f"Found {total} amenities within {amenity_radius}m")
+                    
+                    # Show amenities by category
+                    by_category = amenities_data.get("by_category", {})
+                    
+                    if by_category:
+                        # Education
+                        if "Education" in by_category:
+                            with st.expander(f"Education ({len(by_category['Education'])} found)", expanded=True):
+                                education = by_category["Education"]
+                                for item in education:
+                                    st.write(f"**{item['name']}** - *{item['type'].title()}*")
                         
-                        if total == 0:
-                            st.info("No amenities found in this range. Try expanding the search radius.")
-                        else:
-                            st.subheader(f"Found {total} amenities within {amenity_radius}m")
+                        # Healthcare
+                        if "Healthcare" in by_category:
+                            with st.expander(f"Healthcare ({len(by_category['Healthcare'])} found)", expanded=True):
+                                healthcare = by_category["Healthcare"]
+                                for item in healthcare:
+                                    st.write(f"**{item['name']}** - *{item['type'].title()}*")
                         
-                        # Show amenities by category
-                        by_category = amenities_data.get("by_category", {})
+                        # Shopping
+                        if "Shopping" in by_category:
+                            with st.expander(f"Shopping ({len(by_category['Shopping'])} found)", expanded=False):
+                                shopping = by_category["Shopping"]
+                                for item in shopping:
+                                    st.write(f"**{item['name']}** - *{item['type'].title()}*")
                         
-                        if by_category:
-                            # Education
-                            if "Education" in by_category:
-                                with st.expander(f"Education ({len(by_category['Education'])} found)", expanded=True):
-                                    education = by_category["Education"]
-                                    for item in education:
-                                        st.write(f"**{item['name']}** - *{item['type'].title()}*")
-                            
-                            # Healthcare
-                            if "Healthcare" in by_category:
-                                with st.expander(f"Healthcare ({len(by_category['Healthcare'])} found)", expanded=True):
-                                    healthcare = by_category["Healthcare"]
-                                    for item in healthcare:
-                                        st.write(f"**{item['name']}** - *{item['type'].title()}*")
-                            
-                            # Shopping
-                            if "Shopping" in by_category:
-                                with st.expander(f"Shopping ({len(by_category['Shopping'])} found)", expanded=False):
-                                    shopping = by_category["Shopping"]
-                                    for item in shopping:
-                                        st.write(f"**{item['name']}** - *{item['type'].title()}*")
-                            
-                            # Dining
-                            if "Dining" in by_category:
-                                with st.expander(f"Dining ({len(by_category['Dining'])} found)", expanded=False):
-                                    dining = by_category["Dining"]
-                                    for item in dining:
-                                        st.write(f"**{item['name']}** - *{item['type'].title()}*")
-                            
-                            # Services
-                            if "Services" in by_category:
-                                with st.expander(f"Services ({len(by_category['Services'])} found)", expanded=False):
-                                    services = by_category["Services"]
-                                    for item in services:
-                                        st.write(f"**{item['name']}** - *{item['type'].title()}*")
-                            
-                            # Recreation
-                            if "Recreation" in by_category:
-                                with st.expander(f"Recreation ({len(by_category['Recreation'])} found)", expanded=False):
-                                    recreation = by_category["Recreation"]
-                                    for item in recreation:
-                                        st.write(f"**{item['name']}** - *{item['type'].title()}*")
-                            
-                            # Safety
-                            if "Safety" in by_category:
-                                with st.expander(f"Safety ({len(by_category['Safety'])} found)", expanded=False):
-                                    safety = by_category["Safety"]
-                                    for item in safety:
-                                        st.write(f"**{item['name']}** - *{item['type'].title()}*")
-                        else:
-                            st.info("No amenities found in this area. Try a different location.")
-                else:
-                    st.error("Could not fetch amenities data")
+                        # Dining
+                        if "Dining" in by_category:
+                            with st.expander(f"Dining ({len(by_category['Dining'])} found)", expanded=False):
+                                dining = by_category["Dining"]
+                                for item in dining:
+                                    st.write(f"**{item['name']}** - *{item['type'].title()}*")
+                        
+                        # Services
+                        if "Services" in by_category:
+                            with st.expander(f"Services ({len(by_category['Services'])} found)", expanded=False):
+                                services = by_category["Services"]
+                                for item in services:
+                                    st.write(f"**{item['name']}** - *{item['type'].title()}*")
+                        
+                        # Recreation
+                        if "Recreation" in by_category:
+                            with st.expander(f"Recreation ({len(by_category['Recreation'])} found)", expanded=False):
+                                recreation = by_category["Recreation"]
+                                for item in recreation:
+                                    st.write(f"**{item['name']}** - *{item['type'].title()}*")
+                        
+                        # Safety
+                        if "Safety" in by_category:
+                            with st.expander(f"Safety ({len(by_category['Safety'])} found)", expanded=False):
+                                safety = by_category["Safety"]
+                                for item in safety:
+                                    st.write(f"**{item['name']}** - *{item['type'].title()}*")
+                    else:
+                        st.info("No amenities found in this area. Try a different location.")
             except Exception as e:
                 st.error(f"Error: {str(e)}")
     
@@ -323,7 +321,7 @@ if lat and lon:
             col_qual1, col_qual2, col_qual3 = st.columns(3)
             
             with col_qual1:
-                ndvi = features.get("ndvi", 0)
+                ndvi = float(features.get("ndvi", 0))
                 st.metric("Greenery Index", f"{ndvi:.3f}")
                 if ndvi > 0.3:
                     st.success("High greenery - great for families!")
@@ -333,7 +331,7 @@ if lat and lon:
                     st.warning("Low greenery - urban area")
             
             with col_qual2:
-                ndwi = features.get("ndwi", 0)
+                ndwi = float(features.get("ndwi", 0))
                 st.metric("Water Proximity", f"{ndwi:.3f}")
                 if ndwi > 0.2:
                     st.success("Near water - premium location!")
@@ -343,7 +341,7 @@ if lat and lon:
                     st.info("No major water bodies")
             
             with col_qual3:
-                road_density = features.get("road_density", 0.3)
+                road_density = float(features.get("road_density", 0.3))
                 st.metric("Road Density", f"{road_density:.3f}")
                 if road_density > 0.6:
                     st.success("Excellent connectivity!")
