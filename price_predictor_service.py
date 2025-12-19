@@ -78,9 +78,13 @@ def predict_price(bedrooms: int, bathrooms: float, sqft_living: int, lat: float,
         # Get satellite features
         sat_features = get_features(lat, lon)
         
-        # ✅ Prepare features for model prediction
-        # The model expects: [bedrooms, bathrooms, sqft_living]
-        X = np.array([[bedrooms, bathrooms, sqft_living]])
+        # ✅ Prepare features for model prediction with proper dtype
+        # The model expects: [bedrooms, bathrooms, sqft_living] as float64
+        bedrooms = float(bedrooms)
+        bathrooms = float(bathrooms)
+        sqft_living = float(sqft_living)
+        
+        X = np.array([[bedrooms, bathrooms, sqft_living]], dtype=np.float64)
         predicted_price = float(model.predict(X)[0])
         
         # ✅ Generate explanation

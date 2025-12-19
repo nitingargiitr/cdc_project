@@ -24,12 +24,21 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "price_model.pkl")
+MODEL_PATH_ROOT = os.path.join(BASE_DIR, "price_model.pkl")
 
-# Load the model
+# Load the model - try both locations
+model = None
 try:
-    model = joblib.load(MODEL_PATH)
-except FileNotFoundError:
-    print(f"Warning: Model not found at {MODEL_PATH}. Please train the model first.")
+    if os.path.exists(MODEL_PATH):
+        model = joblib.load(MODEL_PATH)
+        print(f"✅ Model loaded from {MODEL_PATH}")
+    elif os.path.exists(MODEL_PATH_ROOT):
+        model = joblib.load(MODEL_PATH_ROOT)
+        print(f"✅ Model loaded from {MODEL_PATH_ROOT}")
+    else:
+        print(f"Warning: Model not found at {MODEL_PATH} or {MODEL_PATH_ROOT}. Please train the model first.")
+except Exception as e:
+    print(f"Error loading model: {e}")
     model = None
 
 
@@ -42,22 +51,28 @@ def predict(bedrooms: int, bathrooms: float, sqft_living: int, lat: float = None
     if model is None:
         return {"error": "Model not loaded. Please train the model first."}
     
+    # ✅ Ensure proper data types - convert to float64
+    bedrooms = float(bedrooms)
+    bathrooms = float(bathrooms)
+    sqft_living = float(sqft_living)
+    
     # Start with basic features
-    features = [bedrooms, bathrooms, sqft_living]
+    features = np.array([[bedrooms, bathrooms, sqft_living]], dtype=np.float64)
     
     # Extract location-based features if coordinates provided
     location_features = {}
     if lat is not None and lon is not None:
         try:
             location_data = extract_all_features(lat, lon)
-            ndvi = location_data.get("ndvi", 0.0)
-            ndwi = location_data.get("ndwi", 0.0)
-            road_density = location_data.get("road_density", 0.3)
+            ndvi = float(location_data.get("ndvi", 0.0))
+            ndwi = float(location_data.get("ndwi", 0.0))
+            road_density = float(location_data.get("road_density", 0.3))
             
             # Check if model expects 6 features (basic + location) or 3 (basic only)
             # Try with all features first
             try:
-                price = model.predict([[bedrooms, bathrooms, sqft_living, ndvi, ndwi, road_density]])
+                features_all = np.array([[bedrooms, bathrooms, sqft_living, ndvi, ndwi, road_density]], dtype=np.float64)
+                price = model.predict(features_all)
                 location_features = {
                     "ndvi": ndvi,
                     "ndwi": ndwi,
@@ -65,7 +80,7 @@ def predict(bedrooms: int, bathrooms: float, sqft_living: int, lat: float = None
                 }
             except ValueError:
                 # Model only expects 3 features (old model), use basic features only
-                price = model.predict([[bedrooms, bathrooms, sqft_living]])
+                price = model.predict(features)
                 location_features = {
                     "ndvi": ndvi,
                     "ndwi": ndwi,
@@ -74,11 +89,11 @@ def predict(bedrooms: int, bathrooms: float, sqft_living: int, lat: float = None
                 }
         except Exception as e:
             # If feature extraction fails, fall back to basic prediction
-            price = model.predict([[bedrooms, bathrooms, sqft_living]])
+            price = model.predict(features)
             location_features = {"error": str(e)}
     else:
         # No location provided, use basic features only
-        price = model.predict([[bedrooms, bathrooms, sqft_living]])
+        price = model.predict(features)
     
     return {
         "predicted_price": float(price[0]),
