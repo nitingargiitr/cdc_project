@@ -105,11 +105,11 @@ with col_map:
         # Handle map clicks
         if search_method == "🗺️ Click on Map":
             map_data = st_folium(m, height=600, key="main_map")
-            if map_data.get("last_clicked"):
+            if map_data and map_data.get("last_clicked"):
                 clicked = map_data["last_clicked"]
-                st.session_state.selected_lat = clicked["lat"]
-                st.session_state.selected_lon = clicked["lng"]
-                st.session_state.location_name = f"{clicked['lat']:.5f}, {clicked['lng']:.5f}"
+                st.session_state.selected_lat = float(clicked["lat"])
+                st.session_state.selected_lon = float(clicked["lng"])
+                st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
                 st.session_state.location_features = None  # Clear cached features
                 st.rerun()
         else:
@@ -118,11 +118,11 @@ with col_map:
         m = folium.Map(location=[28.6139, 77.2090], zoom_start=10)
         if search_method == "🗺️ Click on Map":
             map_data = st_folium(m, height=600, key="main_map")
-            if map_data.get("last_clicked"):
+            if map_data and map_data.get("last_clicked"):
                 clicked = map_data["last_clicked"]
-                st.session_state.selected_lat = clicked["lat"]
-                st.session_state.selected_lon = clicked["lng"]
-                st.session_state.location_name = f"{clicked['lat']:.5f}, {clicked['lng']:.5f}"
+                st.session_state.selected_lat = float(clicked["lat"])
+                st.session_state.selected_lon = float(clicked["lng"])
+                st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
                 st.session_state.location_features = None  # Clear cached features
                 st.rerun()
         else:

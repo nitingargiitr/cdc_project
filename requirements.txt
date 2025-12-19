@@ -7,14 +7,14 @@ uvicorn[standard]==0.24.0
 # -------------------------------
 # Frontend
 # -------------------------------
-streamlit==1.28.1
+streamlit==1.32.0
 requests==2.31.0
 
 # -------------------------------
 # Mapping (version-fixed)
 # -------------------------------
 folium==0.14.0
-streamlit-folium==0.25.3
+streamlit-folium==0.18.0
 
 # -------------------------------
 # Machine Learning
