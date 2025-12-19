@@ -3,11 +3,14 @@ User-Friendly Property Price Predictor
 Focus on practical features for normal users - nearby amenities, location quality, etc.
 """
 import streamlit as st
-import requests
 import folium
 from streamlit_folium import st_folium
 from folium.plugins import MousePosition, Fullscreen
 import pandas as pd
+import os
+
+# Local service (replace backend HTTP calls)
+from price_predictor_service import predict_price, get_features, get_nearby_amenities
 
 st.set_page_config(layout="wide", page_title="AI Property Price Predictor", initial_sidebar_state="expanded")
 
@@ -162,22 +165,14 @@ with col_info:
         st.write(f"Lat: `{lat:.5f}`")
         st.write(f"Lon: `{lon:.5f}`")
         
-        # Quick location features
+        # Quick location features (use local service)
         if st.session_state.location_features is None:
             try:
-                features_res = requests.get(
-                    "http://127.0.0.1:8000/features",
-                    params={"lat": lat, "lon": lon},
-                    timeout=20
-                )
-                if features_res.status_code == 200:
-                    st.session_state.location_features = features_res.json()
-                else:
-                    st.session_state.location_features = {"error": "Failed to fetch features"}
-            except:
-                st.session_state.location_features = {"error": "Connection failed"}
-        
-        features = st.session_state.location_features
+                st.session_state.location_features = get_features(lat, lon)
+            except Exception:
+                st.session_state.location_features = {"error": "Failed to fetch features"}
+
+        features = st.session_state.location_features or {}
         if "error" not in features:
             st.metric("🌳 Greenery", f"{features.get('ndvi', 0):.3f}")
             st.metric("💧 Water", f"{features.get('ndwi', 0):.3f}")
@@ -194,15 +189,9 @@ if lat and lon:
         st.header("Price Prediction")
         
         try:
-            explain_res = requests.get(
-                "http://127.0.0.1:8000/explain",
-                params={"bedrooms": bedrooms, "bathrooms": bathrooms, "sqft_living": sqft, "lat": lat, "lon": lon},
-                timeout=30
-            )
-            
-            if explain_res.status_code == 200:
-                result = explain_res.json()
-                price = result["predicted_price"]
+            # Use local service instead of HTTP
+            result = predict_price(bedrooms, bathrooms, sqft, lat, lon)
+            price = result.get("predicted_price")
                 
                 # Price Display
                 col_price1, col_price2, col_price3 = st.columns(3)
@@ -252,20 +241,14 @@ if lat and lon:
         
         with st.spinner("Finding nearby amenities..."):
             try:
-                amenities_res = requests.get(
-                    "http://127.0.0.1:8000/nearby-amenities",
-                    params={"lat": lat, "lon": lon, "radius": amenity_radius},
-                    timeout=30
-                )
-                
-                if amenities_res.status_code == 200:
-                    amenities_data = amenities_res.json()
-                    
-                    if amenities_data.get("error"):
-                        st.error(f"{amenities_data['error']}")
-                    else:
-                        # Total count
-                        total = amenities_data.get("total", 0)
+                # Use local amenities function
+                amenities_data = get_nearby_amenities(lat, lon, amenity_radius)
+
+                if amenities_data.get("error"):
+                    st.error(f"{amenities_data['error']}")
+                else:
+                    # Total count
+                    total = amenities_data.get("total", 0)
                         
                         if total == 0:
                             st.info("No amenities found in this range. Try expanding the search radius.")
@@ -452,60 +435,24 @@ if lat and lon:
                 status_text.text(f"Analyzing {loc['name']}...")
                 
                 try:
-                    # Get price prediction
-                    price_res = requests.get(
-                        "http://127.0.0.1:8000/explain",
-                        params={
-                            "bedrooms": loc["bedrooms"], 
-                            "bathrooms": loc["bathrooms"], 
-                            "sqft_living": loc["sqft"], 
-                            "lat": loc["lat"], 
-                            "lon": loc["lon"]
-                        },
-                        timeout=15
-                    )
-                    
-                    if price_res.status_code == 200:
-                        price_data = price_res.json()
-                        predicted_price = price_data["predicted_price"]
-                        price_per_sqft = predicted_price / loc["sqft"] if loc["sqft"] > 0 else 0
-                        
-                        # Get location features
-                        features_res = requests.get(
-                            "http://127.0.0.1:8000/features",
-                            params={"lat": loc["lat"], "lon": loc["lon"]},
-                            timeout=15
-                        )
-                        
-                        features = {"ndvi": 0.0, "ndwi": 0.0, "road_density": 0.3}
-                        if features_res.status_code == 200:
-                            features_data = features_res.json()
-                            if isinstance(features_data, dict):
-                                features = features_data
-                        
-                        comparison_data.append({
-                            "Location": loc["name"],
-                            "Price": f"${predicted_price:,.0f}",
-                            "Price/sqft": f"${price_per_sqft:,.0f}",
-                            "Beds": loc["bedrooms"],
-                            "Baths": loc["bathrooms"],
-                            "Sqft": f"{loc['sqft']:,}",
-                            "Greenery": f"{features.get('ndvi', 0):.2f}",
-                            "Water": f"{features.get('ndwi', 0):.2f}",
-                            "Connectivity": f"{features.get('road_density', 0.3):.2f}"
-                        })
-                    else:
-                        comparison_data.append({
-                            "Location": loc["name"],
-                            "Price": "API Error",
-                            "Price/sqft": "API Error",
-                            "Beds": loc["bedrooms"],
-                            "Baths": loc["bathrooms"],
-                            "Sqft": f"{loc['sqft']:,}",
-                            "Greenery": "N/A",
-                            "Water": "N/A",
-                            "Connectivity": "N/A"
-                        })
+                    # Use local service to get price and features
+                    price_data = predict_price(loc["bedrooms"], loc["bathrooms"], loc["sqft"], loc["lat"], loc["lon"])
+                    predicted_price = price_data.get("predicted_price")
+                    price_per_sqft = predicted_price / loc["sqft"] if loc["sqft"] > 0 else 0
+
+                    features = get_features(loc["lat"], loc["lon"]) or {"ndvi": 0.0, "ndwi": 0.0, "road_density": 0.3}
+
+                    comparison_data.append({
+                        "Location": loc["name"],
+                        "Price": f"${predicted_price:,.0f}",
+                        "Price/sqft": f"${price_per_sqft:,.0f}",
+                        "Beds": loc["bedrooms"],
+                        "Baths": loc["bathrooms"],
+                        "Sqft": f"{loc['sqft']:,}",
+                        "Greenery": f"{features.get('ndvi', 0):.2f}",
+                        "Water": f"{features.get('ndwi', 0):.2f}",
+                        "Connectivity": f"{features.get('road_density', 0.3):.2f}"
+                    })
                 
                 except Exception as e:
                     comparison_data.append({
