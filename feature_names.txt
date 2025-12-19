@@ -1,0 +1,6 @@
+bedrooms
+bathrooms
+sqft_living
+ndvi
+ndwi
+road_density
