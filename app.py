@@ -104,7 +104,7 @@ with col_map:
         
         # Handle map clicks
         if search_method == "🗺️ Click on Map":
-            map_data = st_folium(m, height=600, width=None, returned_objects=["last_clicked"], key="main_map")
+            map_data = st_folium(m, height=600, key="main_map")
             if map_data.get("last_clicked"):
                 clicked = map_data["last_clicked"]
                 st.session_state.selected_lat = clicked["lat"]
@@ -113,11 +113,11 @@ with col_map:
                 st.session_state.location_features = None  # Clear cached features
                 st.rerun()
         else:
-            st_folium(m, height=600, width=None, key="main_map")
+            st_folium(m, height=600, key="main_map")
     else:
         m = folium.Map(location=[28.6139, 77.2090], zoom_start=10)
         if search_method == "🗺️ Click on Map":
-            map_data = st_folium(m, height=600, width=None, returned_objects=["last_clicked"], key="main_map")
+            map_data = st_folium(m, height=600, key="main_map")
             if map_data.get("last_clicked"):
                 clicked = map_data["last_clicked"]
                 st.session_state.selected_lat = clicked["lat"]
@@ -126,7 +126,7 @@ with col_map:
                 st.session_state.location_features = None  # Clear cached features
                 st.rerun()
         else:
-            st_folium(m, height=600, width=None, key="main_map")
+            st_folium(m, height=600, key="main_map")
         st.info("👆 Select a location to get started")
 
 # Location Info Panel
