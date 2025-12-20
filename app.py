@@ -22,7 +22,13 @@ st.set_page_config(
 # ✅ FIX 1: Create fresh map object function
 def create_map(lat, lon, location_name=None):
     """Create a fresh map object every time - never reuse"""
-    m = folium.Map(location=[lat, lon], zoom_start=15, tiles='OpenStreetMap')
+    m = folium.Map(
+        location=[lat, lon],
+        zoom_start=15,
+        tiles="CartoDB dark_matter",
+        attr="CartoDB",
+        control_scale=True,
+    )
     
     # Add marker with string-only properties
     folium.Marker(
@@ -37,9 +43,9 @@ def create_map(lat, lon, location_name=None):
         location=[lat, lon],
         radius=1000,
         popup="Nearby amenities search radius: 1km",
-        color="#3186cc",
+        color="#60a5fa",
         fill=True,
-        fillColor="#3186cc",
+        fillColor="#60a5fa",
         fillOpacity=0.1
     ).add_to(m)
     
@@ -190,6 +196,28 @@ st.markdown(
     font-size: 0.85rem;
     font-weight: 600;
   }
+
+  .pp-map-card {
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  .pp-map-head {
+    padding: 0.85rem 0.95rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .pp-map-card [data-testid="stIFrame"] {
+    width: 100% !important;
+  }
+  .pp-map-card iframe {
+    width: 100% !important;
+    min-width: 100% !important;
+    display: block;
+    background: transparent !important;
+  }
 </style>
     """,
     unsafe_allow_html=True,
@@ -254,7 +282,10 @@ sqft = st.sidebar.slider("Living Area (sqft)", 500, 4000, 1500, 50, key="sqft")
 col_map, col_info = st.columns([2, 1], gap="large")
 
 with col_map:
-    st.markdown('<div class="pp-section-title">📍 Property Location</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="pp-card pp-map-card"><div class="pp-map-head">📍 Property Location</div>',
+        unsafe_allow_html=True,
+    )
     if lat and lon:
         # ✅ FIX 1: Fresh map creation
         m = create_map(lat, lon, location_name)
@@ -264,7 +295,7 @@ with col_map:
         try:
             map_data = st_folium(
                 m,
-                height=540,
+                height=560,
                 key="main_map"
             )
         except Exception as e:
@@ -283,14 +314,20 @@ with col_map:
                 st.rerun()
     else:
         # Default map (no location selected yet)
-        m_default = folium.Map(location=[28.6139, 77.2090], zoom_start=10)
+        m_default = folium.Map(
+            location=[28.6139, 77.2090],
+            zoom_start=10,
+            tiles="CartoDB dark_matter",
+            attr="CartoDB",
+            control_scale=True,
+        )
         
         # ✅ FIX 3: Cloud-safe st_folium with error handling
         map_data = None
         try:
             map_data = st_folium(
                 m_default,
-                height=540,
+                height=560,
                 key="main_map"
             )
         except Exception as e:
@@ -308,6 +345,8 @@ with col_map:
             st.rerun()
         
         st.info("👆 Select a location to get started")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Location Info Panel
 with col_info:
