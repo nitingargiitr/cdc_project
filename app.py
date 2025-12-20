@@ -12,19 +12,113 @@ import os
 # Local service (replace backend HTTP calls)
 from price_predictor_service import predict_price, get_features, get_nearby_amenities
 
-st.set_page_config(layout="wide", page_title="AI Property Price Predictor", initial_sidebar_state="expanded")
+# Configure page with modern theme
+st.set_page_config(
+    layout="wide",
+    page_title="AI Property Price Predictor",
+    initial_sidebar_state="expanded",
+    page_icon="🏠"
+)
 
-# ✅ FIX 1: Create fresh map object function
-def create_map(lat, lon, location_name=None):
-    """Create a fresh map object every time - never reuse"""
-    m = folium.Map(location=[lat, lon], zoom_start=15, tiles='OpenStreetMap')
+# Custom CSS for modern UI
+st.markdown("""
+<style>
+    /* Modern color scheme */
+    :root {
+        --primary: #2563eb;
+        --primary-light: #3b82f6;
+        --secondary: #4b5563;
+        --background: #f9fafb;
+        --card-bg: #ffffff;
+        --border: #e5e7eb;
+    }
     
-    # Add marker with string-only properties
-    folium.Marker(
+    /* Main container */
+    .main {
+        background-color: var(--background);
+    }
+    
+    /* Cards */
+    .card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border);
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Headers */
+    h1, h2, h3, h4, h5, h6 {
+        color: #111827;
+        font-weight: 600;
+    }
+    
+    /* Sidebar */
+    .sidebar .sidebar-content {
+        background-color: #f8fafc;
+        border-right: 1px solid var(--border);
+    }
+    
+    /* Buttons */
+    .stButton>button {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: var(--primary);
+        color: white !important;
+    }
+    
+    /* Inputs */
+    .stNumberInput, .stSlider, .stSelectbox, .stTextInput {
+        margin-bottom: 1rem;
+    }
+    
+    /* Metrics */
+    .stMetric {
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid var(--border);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+def create_map(lat, lon, location_name=None, draggable=True):
+    """Create an interactive map with draggable marker"""
+    m = folium.Map(
+        location=[lat, lon],
+        zoom_start=15,
+        tiles='cartodbpositron',
+        attr='CartoDB Positron',
+        control_scale=True
+    )
+    
+    # Add draggable marker
+    marker = folium.Marker(
         [lat, lon],
-        popup=f"<b>{location_name or 'Selected Location'}</b><br>Lat: {lat:.5f}<br>Lon: {lon:.5f}",
-        tooltip="Selected Location",
-        icon=folium.Icon(color="red", icon="home", prefix="fa")
+        popup=folium.Popup(
+            f"<b>{location_name or 'Selected Location'}</b><br>"
+            f"Lat: {lat:.5f}<br>Lon: {lon:.5f}",
+            max_width=250
+        ),
+        tooltip="Drag me to adjust location",
+        icon=folium.Icon(color="red", icon="home", prefix="fa"),
+        draggable=draggable
     ).add_to(m)
     
     # Add analysis radius circle
@@ -32,15 +126,27 @@ def create_map(lat, lon, location_name=None):
         location=[lat, lon],
         radius=1000,
         popup="Nearby amenities search radius: 1km",
-        color="#3186cc",
+        color=var("--primary"),
+        weight=2,
         fill=True,
-        fillColor="#3186cc",
+        fillColor=var("--primary-light"),
         fillOpacity=0.1
     ).add_to(m)
     
     # Add plugins
-    MousePosition().add_to(m)
-    Fullscreen().add_to(m)
+    MousePosition(
+        position="topright",
+        separator=" | ",
+        empty_string="Click on map to select location",
+        prefix="Coordinates:"
+    ).add_to(m)
+    
+    Fullscreen(
+        position="topleft",
+        title="Fullscreen",
+        title_cancel="Exit Fullscreen",
+        force_separate_button=True
+    ).add_to(m)
     
     return m
 
@@ -64,8 +170,31 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<h1 class="main-header">🏠 AI Property Price Predictor</h1>', unsafe_allow_html=True)
-st.markdown("**Find your perfect home with AI-powered price predictions and location insights**")
+# Main header with gradient text
+st.markdown(
+    """
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h1 style="
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        ">
+            🏠 AI Property Price Predictor
+        </h1>
+        <p style="
+            color: #4b5563;
+            font-size: 1.1rem;
+            margin-top: 0;
+        ">
+            Discover your perfect home with AI-powered price predictions and location insights
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Initialize session state
 for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features', 'comparison_locations']:
@@ -73,116 +202,261 @@ for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features'
         st.session_state[key] = [] if key == 'comparison_locations' else None
 
 # Sidebar - Location Selection
-st.sidebar.header("📍 Location Selection")
-
-search_method = st.sidebar.radio(
-    "Choose input method:",
-    ["📌 Enter Coordinates", "🗺️ Click on Map"],
-    key="search_method"
-)
-
-lat = st.session_state.selected_lat
-lon = st.session_state.selected_lon
-location_name = st.session_state.location_name
-
-# Enter Coordinates
-if search_method == "📌 Enter Coordinates":
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        lat_input = st.number_input("Latitude", value=lat or 28.6139, format="%.5f", step=0.0001, key="lat_in")
-    with col2:
-        lon_input = st.number_input("Longitude", value=lon or 77.2090, format="%.5f", step=0.0001, key="lon_in")
+with st.sidebar:
+    st.markdown("### 📍 Location Selection")
     
-    if st.sidebar.button("✅ Use Coordinates", use_container_width=True):
-        st.session_state.selected_lat = lat_input
-        st.session_state.selected_lon = lon_input
-        st.session_state.location_name = f"{lat_input:.5f}, {lon_input:.5f}"
-        st.session_state.location_features = None  # Clear cached features
-st.sidebar.markdown("---")
-st.sidebar.header("🏡 Property Details")
-bedrooms = st.sidebar.slider("Bedrooms", 1, 6, 3, key="bed")
-bathrooms = st.sidebar.slider("Bathrooms", 1.0, 4.0, 2.0, 0.5, key="bath")
-sqft = st.sidebar.slider("Living Area (sqft)", 500, 4000, 1500, 50, key="sqft")
+    # Location input method selector
+    search_method = st.radio(
+        "Select input method:",
+        ["🗺️ Click on Map", "📌 Enter Coordinates"],
+        key="search_method"
+    )
+    
+    lat = st.session_state.selected_lat
+    lon = st.session_state.selected_lon
+    location_name = st.session_state.location_name
+    
+    # Coordinates input section
+    if search_method == "📌 Enter Coordinates":
+        st.markdown("#### Enter Coordinates")
+        col1, col2 = st.columns(2)
+        with col1:
+            lat_input = st.number_input(
+                "Latitude", 
+                value=lat or 28.6139, 
+                format="%.5f", 
+                step=0.0001, 
+                key="lat_in",
+                help="Enter the latitude of the property location"
+            )
+        with col2:
+            lon_input = st.number_input(
+                "Longitude", 
+                value=lon or 77.2090, 
+                format="%.5f", 
+                step=0.0001, 
+                key="lon_in",
+                help="Enter the longitude of the property location"
+            )
+        
+        if st.button("🔍 Update Location", 
+                   use_container_width=True, 
+                   type="primary",
+                   help="Update the map with the entered coordinates"):
+            st.session_state.selected_lat = lat_input
+            st.session_state.selected_lon = lon_input
+            st.session_state.location_name = f"{lat_input:.5f}, {lon_input:.5f}"
+            st.session_state.location_features = None
+            st.rerun()
+    else:
+        st.info("ℹ️ Click on the map to select a location")
+    
+    st.markdown("---")
+    
+    # Property details section
+    st.markdown("### 🏡 Property Details")
+    
+    st.markdown("#### Basic Information")
+    col1, col2 = st.columns(2)
+    with col1:
+        bedrooms = st.slider(
+            "Bedrooms", 
+            min_value=1, 
+            max_value=6, 
+            value=3, 
+            step=1,
+            key="bed",
+            help="Number of bedrooms in the property"
+        )
+    with col2:
+        bathrooms = st.slider(
+            "Bathrooms", 
+            min_value=1.0, 
+            max_value=4.0, 
+            value=2.0, 
+            step=0.5,
+            key="bath",
+            help="Number of bathrooms in the property"
+        )
+    
+    sqft = st.slider(
+        "Living Area (sqft)", 
+        min_value=500, 
+        max_value=4000, 
+        value=1500, 
+        step=50, 
+        key="sqft",
+        help="Total living area in square feet"
+    )
 
-# Map Display
-col_map, col_info = st.columns([2, 1])
+# Main content layout
+col_map, col_info = st.columns([2, 1], gap="large")
 
 with col_map:
-    if lat and lon:
-        # ✅ FIX 1: Fresh map creation
-        m = create_map(lat, lon, location_name)
+    # Map container with card styling
+    with st.container():
+        st.markdown("""
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                <h3 style="margin: 0;">📍 Property Location</h3>
+            </div>
+        """, unsafe_allow_html=True)
         
-        # ✅ FIX 3: Cloud-safe st_folium with error handling
-        map_data = None
-        try:
-            map_data = st_folium(
-                m,
-                height=600,
-                width=700,
-                key="main_map"
-            )
-        except Exception as e:
-            st.warning("⚠️ Map temporarily unavailable. Please refresh the page.")
+        if lat and lon:
+            # Create map with draggable marker
+            m = create_map(lat, lon, location_name, draggable=True)
+            
+            try:
+                # Display the map
+                map_data = st_folium(
+                    m,
+                    height=500,
+                    width="100%",
+                    key="main_map",
+                    returned_objects=["last_clicked", "bounds"]
+                )
+                
+                # Handle map clicks for location selection
+                if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
+                    clicked = map_data["last_clicked"]
+                    st.session_state.selected_lat = float(clicked["lat"])
+                    st.session_state.selected_lon = float(clicked["lng"])
+                    st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
+                    st.session_state.location_features = None
+                    st.rerun()
+                    
+            except Exception as e:
+                st.error("⚠️ Map is currently unavailable. Please try again later.")
+                st.error(str(e))
+        else:
+            # Default map (no location selected yet)
+            m_default = folium.Map(location=[28.6139, 77.2090], zoom_start=10, tiles='cartodbpositron')
+            
+            try:
+                map_data = st_folium(
+                    m_default,
+                    height=500,
+                    width="100%",
+                    key="main_map"
+                )
+                
+                # Handle map clicks for initial location selection
+                if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
+                    clicked = map_data["last_clicked"]
+                    st.session_state.selected_lat = float(clicked["lat"])
+                    st.session_state.selected_lon = float(clicked["lng"])
+                    st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
+                    st.session_state.location_features = None
+                    st.rerun()
+                
+                st.info("👆 Click on the map to select a property location")
+                
+            except Exception as e:
+                st.error("⚠️ Map is currently unavailable. Please try again later.")
         
-        # ✅ FIX 2: Handle map clicks WITHOUT st.rerun()
-        if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
-            clicked = map_data["last_clicked"]
-            st.session_state.selected_lat = float(clicked["lat"])
-            st.session_state.selected_lon = float(clicked["lng"])
-            st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
-            st.session_state.location_features = None
-    else:
-        # Default map (no location selected yet)
-        m_default = folium.Map(location=[28.6139, 77.2090], zoom_start=10)
-        
-        # ✅ FIX 3: Cloud-safe st_folium with error handling
-        map_data = None
-        try:
-            map_data = st_folium(
-                m_default,
-                height=600,
-                width=700,
-                key="main_map"
-            )
-        except Exception as e:
-            st.warning("⚠️ Map temporarily unavailable. Please refresh the page.")
-        
-        # ✅ FIX 2: Handle map clicks WITHOUT st.rerun()
-        if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
-            clicked = map_data["last_clicked"]
-            st.session_state.selected_lat = float(clicked["lat"])
-            st.session_state.selected_lon = float(clicked["lng"])
-            st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
-            st.session_state.location_features = None
-        
-        st.info("👆 Select a location to get started")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # Location Info Panel
 with col_info:
     if lat and lon:
-        st.subheader("📍 Location Info")
-        st.write(f"**{location_name or 'Selected Location'}**")
-        st.write(f"Lat: `{lat:.5f}`")
-        st.write(f"Lon: `{lon:.5f}`")
-        
-        # Quick location features (use local service)
-        if st.session_state.location_features is None:
-            try:
-                st.session_state.location_features = get_features(lat, lon)
-            except Exception:
-                st.session_state.location_features = {"error": "Failed to fetch features"}
-
-        features = st.session_state.location_features or {}
-        if "error" not in features:
-            ndvi_val = features.get('ndvi', 0)
-            ndwi_val = features.get('ndwi', 0)
-            road_val = features.get('road_density', 0.3)
-            st.metric("🌳 Greenery", f"{ndvi_val:.3f}")
-            st.metric("💧 Water", f"{ndwi_val:.3f}")
-            st.metric("🛣️ Roads", f"{road_val:.3f}")
-            # Warn if all features are zero/default (likely API/credentials issue)
-            if ndvi_val == 0 and ndwi_val == 0 and (road_val == 0 or road_val == 0.3):
-                st.warning("Satellite features are all zero or default. Check Sentinel Hub credentials or API access.")
+        with st.container():
+            st.markdown("### 📍 Location Details")
+            
+            # Location info card
+            with st.container():
+                st.markdown(f"""
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                        <div style="background: #e0f2fe; width: 40px; height: 40px; border-radius: 8px; 
+                                 display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                            <span style="font-size: 1.2rem;">📍</span>
+                        </div>
+                        <div>
+                            <p style="margin: 0; font-weight: 600; color: #111827;">
+                                {location_name or 'Selected Location'}
+                            </p>
+                            <p style="margin: 0; font-size: 0.9rem; color: #6b7280;">
+                                {lat:.5f}, {lon:.5f}
+                            </p>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Quick location features (use local service)
+                if st.session_state.location_features is None:
+                    try:
+                        with st.spinner("Fetching location data..."):
+                            st.session_state.location_features = get_features(lat, lon)
+                    except Exception as e:
+                        st.session_state.location_features = {"error": f"Failed to fetch features: {str(e)}"}
+                
+                features = st.session_state.location_features or {}
+                
+                if "error" not in features:
+                    ndvi_val = features.get('ndvi', 0)
+                    ndwi_val = features.get('ndwi', 0)
+                    road_val = features.get('road_density', 0.3)
+                    
+                    # Metrics in a grid
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown(f"""
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-size: 1.2rem; margin-right: 8px;">🌳</span>
+                                <span style="font-size: 0.8rem; color: #4b5563;">Greenery</span>
+                            </div>
+                            <div style="font-size: 1.2rem; font-weight: 600;">
+                                {ndvi_val:.3f} <span style="font-size: 0.9rem; font-weight: normal; color: #6b7280;">NDVI</span>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-size: 1.2rem; margin-right: 8px;">💧</span>
+                                <span style="font-size: 0.8rem; color: #4b5563;">Water</span>
+                            </div>
+                            <div style="font-size: 1.2rem; font-weight: 600;">
+                                {ndwi_val:.3f} <span style="font-size: 0.9rem; font-weight: normal; color: #6b7280;">NDWI</span>
+                            </div>
+                        </div>
+                        """, unsafe_show_errors=True, unsafe_allow_html=True)
+                        
+                    with col2:
+                        st.markdown(f"""
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-size: 1.2rem; margin-right: 8px;">🛣️</span>
+                                <span style="font-size: 0.8rem; color: #4b5563;">Road Density</span>
+                            </div>
+                            <div style="font-size: 1.2rem; font-weight: 600;">
+                                {road_val:.3f} <span style="font-size: 0.9rem; font-weight: normal; color: #6b7280;">km/km²</span>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 1rem;">
+                            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-size: 1.2rem; margin-right: 8px;">🏘️</span>
+                                <span style="font-size: 0.8rem; color: #4b5563;">Nearby Amenities</span>
+                            </div>
+                            <div style="font-size: 1.2rem; font-weight: 600;">
+                                {features.get('amenities_count', 0)} <span style="font-size: 0.9rem; font-weight: normal; color: #6b7280;">in 1km</span>
+                            </div>
+                        </div>
+                        """, unsafe_show_errors=True, unsafe_allow_html=True)
+                    
+                    # Warning for default/zero values
+                    if ndvi_val == 0 and ndwi_val == 0 and (road_val == 0 or road_val == 0.3):
+                        st.warning("Satellite features are showing default values. Check API access.")
+                else:
+                    st.error(features["error"])
+                
+                st.markdown("</div>", unsafe_show_errors=True, unsafe_allow_html=True)
+                
+                # Refresh button
+                if st.button("🔄 Refresh Location Data", use_container_width=True):
+                    st.session_state.location_features = None
+                    st.rerun()
 
 # Main Analysis Section
 if lat and lon:
