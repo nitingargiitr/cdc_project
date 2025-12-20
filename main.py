@@ -43,62 +43,86 @@ except Exception as e:
 
 
 @app.get("/predict")
-def predict(bedrooms: int, bathrooms: float, sqft_living: int, lat: float = None, lon: float = None):
+def predict(
+    bedrooms: float, 
+    bathrooms: float, 
+    sqft_living: int, 
+    sqft_lot: int,
+    floors: float,
+    waterfront: int,
+    view: int,
+    condition: int,
+    grade: int,
+    sqft_above: int,
+    sqft_basement: int,
+    yr_built: int,
+    yr_renovated: int,
+    zipcode: int,
+    lat: float,
+    long: float,
+    sqft_living15: int,
+    sqft_lot15: int
+):
     """
-    Predict property price based on bedrooms, bathrooms, sqft_living, and location features.
-    If location is provided, extracts NDVI, NDWI, and road density features.
+    Predict property price based on all available property features.
+    
+    Features:
+    - bedrooms: Number of bedrooms
+    - bathrooms: Number of bathrooms
+    - sqft_living: Square feet of living space
+    - sqft_lot: Square feet of lot
+    - floors: Number of floors
+    - waterfront: Whether property is on waterfront (0 or 1)
+    - view: View rating (0-4)
+    - condition: Property condition (1-5)
+    - grade: Build quality grade (1-13)
+    - sqft_above: Square feet above ground
+    - sqft_basement: Square feet of basement
+    - yr_built: Year built
+    - yr_renovated: Year renovated
+    - zipcode: Zip code
+    - lat: Latitude
+    - long: Longitude
+    - sqft_living15: Average sqft of living space in nearby properties
+    - sqft_lot15: Average sqft of lot in nearby properties
     """
     if model is None:
         return {"error": "Model not loaded. Please train the model first."}
     
-    # ✅ Ensure proper data types - convert to float64
-    bedrooms = float(bedrooms)
-    bathrooms = float(bathrooms)
-    sqft_living = float(sqft_living)
+    # Ensure proper data types - convert to float64
+    features = np.array([[
+        float(bedrooms),
+        float(bathrooms),
+        float(sqft_living),
+        float(sqft_lot),
+        float(floors),
+        float(waterfront),
+        float(view),
+        float(condition),
+        float(grade),
+        float(sqft_above),
+        float(sqft_basement),
+        float(yr_built),
+        float(yr_renovated),
+        float(zipcode),
+        float(lat),
+        float(long),
+        float(sqft_living15),
+        float(sqft_lot15)
+    ]], dtype=np.float64)
     
-    # Start with basic features
-    features = np.array([[bedrooms, bathrooms, sqft_living]], dtype=np.float64)
-    
-    # Extract location-based features if coordinates provided
-    location_features = {}
-    if lat is not None and lon is not None:
-        try:
-            location_data = extract_all_features(lat, lon)
-            ndvi = float(location_data.get("ndvi", 0.0))
-            ndwi = float(location_data.get("ndwi", 0.0))
-            road_density = float(location_data.get("road_density", 0.3))
-            
-            # Check if model expects 6 features (basic + location) or 3 (basic only)
-            # Try with all features first
-            try:
-                features_all = np.array([[bedrooms, bathrooms, sqft_living, ndvi, ndwi, road_density]], dtype=np.float64)
-                price = model.predict(features_all)
-                location_features = {
-                    "ndvi": ndvi,
-                    "ndwi": ndwi,
-                    "road_density": road_density
-                }
-            except ValueError:
-                # Model only expects 3 features (old model), use basic features only
-                price = model.predict(features)
-                location_features = {
-                    "ndvi": ndvi,
-                    "ndwi": ndwi,
-                    "road_density": road_density,
-                    "note": "Location features extracted but model not yet retrained to use them"
-                }
-        except Exception as e:
-            # If feature extraction fails, fall back to basic prediction
-            price = model.predict(features)
-            location_features = {"error": str(e)}
-    else:
-        # No location provided, use basic features only
+    try:
         price = model.predict(features)
-    
-    return {
-        "predicted_price": float(price[0]),
-        "location_features": location_features
-    }
+        return {
+            "predicted_price": float(price[0]),
+            "status": "success",
+            "features_used": 18
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to make prediction: {str(e)}",
+            "status": "error"
+        }
 
 
 @app.get("/satellite")
