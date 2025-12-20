@@ -25,8 +25,8 @@ def create_map(lat, lon, location_name=None):
     m = folium.Map(
         location=[lat, lon],
         zoom_start=15,
-        tiles="CartoDB dark_matter",
-        attr="CartoDB",
+        tiles="cartodbpositron",
+        attr="CartoDB Positron",
         control_scale=True,
     )
     
@@ -43,9 +43,9 @@ def create_map(lat, lon, location_name=None):
         location=[lat, lon],
         radius=1000,
         popup="Nearby amenities search radius: 1km",
-        color="#60a5fa",
+        color="#2563eb",
         fill=True,
-        fillColor="#60a5fa",
+        fillColor="#2563eb",
         fillOpacity=0.1
     ).add_to(m)
     
@@ -215,8 +215,15 @@ st.markdown(
   .pp-map-card iframe {
     width: 100% !important;
     min-width: 100% !important;
+    max-width: 100% !important;
     display: block;
     background: transparent !important;
+  }
+
+  .pp-map-card div[data-testid="stIFrame"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block;
   }
 </style>
     """,
@@ -296,6 +303,7 @@ with col_map:
             map_data = st_folium(
                 m,
                 height=560,
+                width="100%",
                 key="main_map"
             )
         except Exception as e:
@@ -317,8 +325,8 @@ with col_map:
         m_default = folium.Map(
             location=[28.6139, 77.2090],
             zoom_start=10,
-            tiles="CartoDB dark_matter",
-            attr="CartoDB",
+            tiles="cartodbpositron",
+            attr="CartoDB Positron",
             control_scale=True,
         )
         
@@ -328,6 +336,7 @@ with col_map:
             map_data = st_folium(
                 m_default,
                 height=560,
+                width="100%",
                 key="main_map"
             )
         except Exception as e:
