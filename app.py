@@ -34,18 +34,18 @@ st.markdown("""
     }
     
     /* Main container */
-    .main {
-        background-color: var(--background);
+    .stApp {
+        background-color: var(--background) !important;
     }
     
     /* Cards */
     .card {
-        background: var(--card-bg);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--border);
-        margin-bottom: 1.5rem;
+        background: var(--card-bg) !important;
+        border-radius: 12px !important;
+        padding: 1.5rem !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid var(--border) !important;
+        margin-bottom: 1.5rem !important;
     }
     
     /* Headers */
@@ -62,37 +62,74 @@ st.markdown("""
     
     /* Buttons */
     .stButton>button {
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        transition: all 0.2s !important;
+        border: 1px solid var(--primary) !important;
+        background-color: var(--primary) !important;
+        color: white !important;
+    }
+    
+    .stButton>button:hover {
+        background-color: var(--primary-light) !important;
+        border-color: var(--primary-light) !important;
     }
     
     /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 8px !important;
+        margin-bottom: 1rem !important;
     }
     
     .stTabs [data-baseweb="tab"] {
-        padding: 8px 16px;
-        border-radius: 8px;
-        transition: all 0.2s;
+        padding: 8px 16px !important;
+        border-radius: 8px !important;
+        transition: all 0.2s !important;
+        background: #f1f5f9 !important;
+        color: #64748b !important;
+        font-weight: 500 !important;
+        border: none !important;
     }
     
     .stTabs [aria-selected="true"] {
-        background-color: var(--primary);
+        background-color: var(--primary) !important;
         color: white !important;
     }
     
     /* Inputs */
-    .stNumberInput, .stSlider, .stSelectbox, .stTextInput {
-        margin-bottom: 1rem;
+    .stNumberInput, .stSlider, .stSelectbox, .stTextInput, .stRadio > div {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Style input fields */
+    .stTextInput>div>div>input, 
+    .stNumberInput>div>div>input,
+    .stSelectbox>div>div>div {
+        border-radius: 8px !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 0.5rem 1rem !important;
+    }
+    
+    /* Slider styles */
+    .stSlider>div>div>div>div {
+        background-color: var(--primary) !important;
+    }
+    
+    /* Radio buttons */
+    .stRadio > div[role="radiogroup"] > label[data-baseweb="radio"] {
+        margin-bottom: 0.5rem !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 8px !important;
+        border: 1px solid #e2e8f0 !important;
     }
     
     /* Metrics */
     .stMetric {
-        background-color: var(--card-bg);
-        border-radius: 8px;
-        padding: 1rem;
+        background-color: var(--card-bg) !important;
+        border-radius: 12px !important;
+        padding: 1.5rem !important;
+        border: 1px solid var(--border) !important;
+        margin-bottom: 1rem !important;
         border: 1px solid var(--border);
     }
 </style>
