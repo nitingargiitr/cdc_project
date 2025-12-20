@@ -12,7 +12,12 @@ import os
 # Local service (replace backend HTTP calls)
 from price_predictor_service import predict_price, get_features, get_nearby_amenities
 
-st.set_page_config(layout="wide", page_title="AI Property Price Predictor", initial_sidebar_state="expanded")
+st.set_page_config(
+    layout="wide",
+    page_title="AI Property Price Predictor",
+    initial_sidebar_state="expanded",
+    page_icon="🏠",
+)
 
 # ✅ FIX 1: Create fresh map object function
 def create_map(lat, lon, location_name=None):
@@ -45,27 +50,165 @@ def create_map(lat, lon, location_name=None):
     return m
 
 # Custom CSS
-st.markdown("""
+st.markdown(
+    """
 <style>
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-    .amenity-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-        border-left: 4px solid #1f77b4;
-    }
-</style>
-""", unsafe_allow_html=True)
+  :root {
+    --bg: #0b1220;
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-2: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.10);
+    --text: #e5e7eb;
+    --muted: rgba(229, 231, 235, 0.72);
+    --brand: #60a5fa;
+    --brand-2: #a78bfa;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --radius: 14px;
+  }
 
-st.markdown('<h1 class="main-header">🏠 AI Property Price Predictor</h1>', unsafe_allow_html=True)
-st.markdown("**Find your perfect home with AI-powered price predictions and location insights**")
+  .stApp {
+    background: radial-gradient(1200px 600px at 15% 0%, rgba(96,165,250,0.20), transparent 55%),
+                radial-gradient(900px 500px at 85% 10%, rgba(167,139,250,0.16), transparent 60%),
+                var(--bg);
+    color: var(--text);
+  }
+
+  .block-container {
+    padding-top: 1.25rem;
+    padding-bottom: 2rem;
+    max-width: 1200px;
+  }
+
+  h1, h2, h3, h4 {
+    color: var(--text) !important;
+    letter-spacing: -0.02em;
+  }
+
+  p, li, label {
+    color: var(--muted) !important;
+  }
+
+  .pp-hero {
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(96,165,250,0.14), rgba(167,139,250,0.08));
+    border-radius: var(--radius);
+    padding: 1.2rem 1.2rem;
+    margin-bottom: 1.25rem;
+  }
+  .pp-hero-title {
+    margin: 0;
+    font-size: 2.15rem;
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(90deg, var(--brand), var(--brand-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .pp-hero-sub {
+    margin: 0.45rem 0 0 0;
+    font-size: 1.02rem;
+    color: var(--muted) !important;
+  }
+
+  section[data-testid="stSidebar"] {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-right: 1px solid var(--border) !important;
+  }
+  section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3 {
+    color: var(--text) !important;
+  }
+
+  .stButton>button {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    border: 1px solid rgba(96,165,250,0.35) !important;
+    background: linear-gradient(90deg, rgba(96,165,250,0.92), rgba(167,139,250,0.85)) !important;
+    color: #0b1220 !important;
+    transition: transform 140ms ease, filter 140ms ease;
+  }
+  .stButton>button:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+  }
+
+  .stTabs [data-baseweb="tab-list"] {
+    gap: 8px !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid var(--border) !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+  }
+  .stTabs [data-baseweb="tab"] {
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    color: var(--muted) !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+  }
+  .stTabs [aria-selected="true"] {
+    background: rgba(255,255,255,0.10) !important;
+    color: var(--text) !important;
+  }
+
+  div[data-testid="stMetric"] {
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    padding: 14px 14px !important;
+  }
+
+  .pp-section-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .pp-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .pp-inline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+</style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+<div class="pp-hero">
+  <div class="pp-inline">
+    <div>
+      <div class="pp-hero-title">AI Property Price Predictor</div>
+      <div class="pp-hero-sub">Modern price insights using property specs + location signals.</div>
+    </div>
+    <div class="pp-pill">Live • Streamlit</div>
+  </div>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Initialize session state
 for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features', 'comparison_locations']:
@@ -98,6 +241,9 @@ if search_method == "📌 Enter Coordinates":
         st.session_state.selected_lon = lon_input
         st.session_state.location_name = f"{lat_input:.5f}, {lon_input:.5f}"
         st.session_state.location_features = None  # Clear cached features
+        st.rerun()
+else:
+    st.sidebar.info("Click on the map to select a location.")
 st.sidebar.markdown("---")
 st.sidebar.header("🏡 Property Details")
 bedrooms = st.sidebar.slider("Bedrooms", 1, 6, 3, key="bed")
@@ -105,9 +251,10 @@ bathrooms = st.sidebar.slider("Bathrooms", 1.0, 4.0, 2.0, 0.5, key="bath")
 sqft = st.sidebar.slider("Living Area (sqft)", 500, 4000, 1500, 50, key="sqft")
 
 # Map Display
-col_map, col_info = st.columns([2, 1])
+col_map, col_info = st.columns([2, 1], gap="large")
 
 with col_map:
+    st.markdown('<div class="pp-section-title">📍 Property Location</div>', unsafe_allow_html=True)
     if lat and lon:
         # ✅ FIX 1: Fresh map creation
         m = create_map(lat, lon, location_name)
@@ -117,8 +264,7 @@ with col_map:
         try:
             map_data = st_folium(
                 m,
-                height=600,
-                width=700,
+                height=540,
                 key="main_map"
             )
         except Exception as e:
@@ -127,10 +273,14 @@ with col_map:
         # ✅ FIX 2: Handle map clicks WITHOUT st.rerun()
         if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
             clicked = map_data["last_clicked"]
-            st.session_state.selected_lat = float(clicked["lat"])
-            st.session_state.selected_lon = float(clicked["lng"])
-            st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
-            st.session_state.location_features = None
+            new_lat = float(clicked["lat"])
+            new_lon = float(clicked["lng"])
+            if (st.session_state.selected_lat != new_lat) or (st.session_state.selected_lon != new_lon):
+                st.session_state.selected_lat = new_lat
+                st.session_state.selected_lon = new_lon
+                st.session_state.location_name = f"{new_lat:.5f}, {new_lon:.5f}"
+                st.session_state.location_features = None
+                st.rerun()
     else:
         # Default map (no location selected yet)
         m_default = folium.Map(location=[28.6139, 77.2090], zoom_start=10)
@@ -140,8 +290,7 @@ with col_map:
         try:
             map_data = st_folium(
                 m_default,
-                height=600,
-                width=700,
+                height=540,
                 key="main_map"
             )
         except Exception as e:
@@ -150,20 +299,31 @@ with col_map:
         # ✅ FIX 2: Handle map clicks WITHOUT st.rerun()
         if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
             clicked = map_data["last_clicked"]
-            st.session_state.selected_lat = float(clicked["lat"])
-            st.session_state.selected_lon = float(clicked["lng"])
-            st.session_state.location_name = f"{float(clicked['lat']):.5f}, {float(clicked['lng']):.5f}"
+            new_lat = float(clicked["lat"])
+            new_lon = float(clicked["lng"])
+            st.session_state.selected_lat = new_lat
+            st.session_state.selected_lon = new_lon
+            st.session_state.location_name = f"{new_lat:.5f}, {new_lon:.5f}"
             st.session_state.location_features = None
+            st.rerun()
         
         st.info("👆 Select a location to get started")
 
 # Location Info Panel
 with col_info:
     if lat and lon:
-        st.subheader("📍 Location Info")
-        st.write(f"**{location_name or 'Selected Location'}**")
-        st.write(f"Lat: `{lat:.5f}`")
-        st.write(f"Lon: `{lon:.5f}`")
+        st.markdown('<div class="pp-section-title">Location Overview</div>', unsafe_allow_html=True)
+        st.markdown(
+            f"""
+<div class="pp-card">
+  <div style="font-weight: 750; color: var(--text);">{location_name or 'Selected Location'}</div>
+  <div style="margin-top: 6px; color: var(--muted); font-size: 0.92rem;">
+    Lat {lat:.5f} • Lon {lon:.5f}
+  </div>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
         
         # Quick location features (use local service)
         if st.session_state.location_features is None:
@@ -177,9 +337,12 @@ with col_info:
             ndvi_val = features.get('ndvi', 0)
             ndwi_val = features.get('ndwi', 0)
             road_val = features.get('road_density', 0.3)
-            st.metric("🌳 Greenery", f"{ndvi_val:.3f}")
-            st.metric("💧 Water", f"{ndwi_val:.3f}")
-            st.metric("🛣️ Roads", f"{road_val:.3f}")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.metric("Greenery (NDVI)", f"{ndvi_val:.3f}")
+                st.metric("Connectivity", f"{road_val:.3f}")
+            with c2:
+                st.metric("Water (NDWI)", f"{ndwi_val:.3f}")
             # Warn if all features are zero/default (likely API/credentials issue)
             if ndvi_val == 0 and ndwi_val == 0 and (road_val == 0 or road_val == 0.3):
                 st.warning("Satellite features are all zero or default. Check Sentinel Hub credentials or API access.")
