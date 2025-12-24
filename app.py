@@ -200,7 +200,50 @@ def create_pdf(data, filename="property_analysis.pdf"):
     pdf.output(filename)
     return filename
 
-# App layout
+# Sidebar
+with st.sidebar:
+    st.header("🔍 Location Search")
+    
+    # Location input
+    location_query = st.text_input("Search for a location", 
+                                 value=st.session_state.location_name if 'location_name' in st.session_state else "",
+                                 placeholder="Enter a location (e.g., 'Mumbai, India')")
+    
+    # Coordinates input
+    st.subheader("Or enter coordinates:")
+    col1, col2 = st.columns(2)
+    with col1:
+        lat_input = st.number_input("Latitude", 
+                                  value=st.session_state.selected_lat if st.session_state.selected_lat else 19.0760,
+                                  format="%.6f",
+                                  step=0.000001)
+    with col2:
+        lon_input = st.number_input("Longitude",
+                                  value=st.session_state.selected_lon if st.session_state.selected_lon else 72.8777,
+                                  format="%.6f",
+                                  step=0.000001)
+    
+    # Update button
+    if st.button("Update Location", use_container_width=True):
+        st.session_state.selected_lat = lat_input
+        st.session_state.selected_lon = lon_input
+        if location_query:
+            st.session_state.location_name = location_query
+        elif st.session_state.selected_lat and st.session_state.selected_lon:
+            st.session_state.location_name = f"Location at {st.session_state.selected_lat:.4f}, {st.session_state.selected_lon:.4f}"
+        st.experimental_rerun()
+    
+    st.markdown("---")  # Add a separator
+    
+    # Currency Toggle
+    st.header("💰 Currency")
+    currency = st.radio("Select currency", ["INR", "USD"], 
+                       index=0 if 'currency' not in st.session_state else (0 if st.session_state.currency == "INR" else 1),
+                       key="currency")
+    
+    st.markdown("---")  # Add a separator
+
+# Main app layout
 st.title("🏠 Property Price Predictor")
 st.markdown("""
     <div style="background-color: #f0f8ff; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
