@@ -16,7 +16,7 @@ from nearby_amenities import get_nearby_amenities as get_amenities_data
 def load_price_model():
     """Load the pre-trained price prediction model"""
     try:
-        model_path = os.path.join(os.path.dirname(__file__), "price_model.pkl")
+        model_path = os.path.join(os.path.dirname(__file__), "model", "price_model.pkl")
         if os.path.exists(model_path):
             return joblib.load(model_path)
     except Exception as e:
