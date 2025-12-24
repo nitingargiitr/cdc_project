@@ -12,7 +12,13 @@ import random
 from io import BytesIO
 
 # Currency configuration
-USD_INR_RATE = 83.0  # Current exchange rate
+USD_INR_RATE = 90.0  # Current exchange rate
+
+# Initialize budget-related variables with default values
+budget_value = 0.0
+budget_radius_km = 5
+budget_points = 30
+budget_inr = 0.0
 
 def format_money(amount_in_inr, currency):
     if amount_in_inr is None:
@@ -370,6 +376,7 @@ if enable_budget_overlay:
     )
     budget_radius_km = st.sidebar.slider("Search radius (km)", 1, 20, 5, 1, key="budget_radius_km")
     budget_points = st.sidebar.slider("Number of points", 10, 100, 30, 5, key="budget_points")
+    budget_inr = budget_value * (USD_INR_RATE if currency == "USD" else 1)
 
 st.sidebar.markdown("---")
 st.sidebar.header("🏡 Property Details")
@@ -391,7 +398,6 @@ with col_map:
         import random
         
         points = []
-        budget_inr = budget_value * (USD_INR_RATE if currency == "USD" else 1)
         
         for _ in range(budget_points):
             radius_km = budget_radius_km * math.sqrt(random.random())
