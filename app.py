@@ -8,29 +8,6 @@ from streamlit_folium import st_folium
 from folium.plugins import MousePosition, Fullscreen
 import pandas as pd
 import os
-import random
-from io import BytesIO
-
-# Currency configuration
-USD_INR_RATE = 90.0  # Current exchange rate
-
-# Initialize budget-related variables with default values
-budget_value = 0.0
-budget_radius_km = 5
-budget_points = 30
-budget_inr = 0.0
-
-def format_money(amount_in_inr, currency):
-    if amount_in_inr is None:
-        return "-"
-    if currency == "USD":
-        return f"${amount_in_inr / USD_INR_RATE:,.0f}"
-    return f"₹{amount_in_inr:,.0f}"
-
-def money_value(amount_in_inr, currency):
-    if amount_in_inr is None:
-        return 0.0
-    return amount_in_inr / USD_INR_RATE if currency == "USD" else float(amount_in_inr)
 
 # Local service (replace backend HTTP calls)
 from price_predictor_service import predict_price, get_features, get_nearby_amenities
@@ -43,21 +20,7 @@ st.set_page_config(
 )
 
 # ✅ FIX 1: Create fresh map object function
-def get_price_color(price, budget):
-    """Return color based on price to budget ratio"""
-    if budget <= 0:
-        return "gray"
-    ratio = price / budget
-    if ratio < 0.85:
-        return "green"  # Well within budget
-    elif ratio < 1.0:
-        return "lightgreen"  # Slightly under budget
-    elif ratio < 1.15:
-        return "orange"  # Slightly over budget
-    else:
-        return "red"  # Over budget
-
-def create_map(lat, lon, location_name=None, budget_data=None):
+def create_map(lat, lon, location_name=None):
     """Create a fresh map object every time - never reuse"""
     m = folium.Map(
         location=[lat, lon],
@@ -67,20 +30,6 @@ def create_map(lat, lon, location_name=None, budget_data=None):
         control_scale=True,
     )
     
-    # Add budget overlay points if provided
-    if budget_data and 'points' in budget_data:
-        for point in budget_data['points']:
-            folium.CircleMarker(
-                location=[point['lat'], point['lon']],
-                radius=5,
-                color=point['color'],
-                fill=True,
-                fill_color=point['color'],
-                fill_opacity=0.7,
-                popup=f"Est. Price: {point['price_str']}"
-            ).add_to(m)
-        
-
     # Add marker with string-only properties
     folium.Marker(
         [lat, lon],
@@ -99,33 +48,6 @@ def create_map(lat, lon, location_name=None, budget_data=None):
         fillColor="#2563eb",
         fillOpacity=0.1
     ).add_to(m)
-    
-    # Add budget search radius if provided
-    if budget_data and 'radius_km' in budget_data:
-        folium.Circle(
-            location=[lat, lon],
-            radius=budget_data['radius_km'] * 1000,  # Convert km to meters
-            popup=f"Budget search radius: {budget_data['radius_km']}km",
-            color="#888",
-            fill=False,
-            dash_array='5, 5'
-        ).add_to(m)
-        
-        # Add legend for budget colors
-        legend_html = """
-        <div style="position: fixed; 
-                    bottom: 50px; left: 50px; width: 180px; height: 120px; 
-                    border:2px solid grey; z-index:9999; font-size:14px;
-                    background-color:white; padding: 10px; border-radius: 5px;
-                    ">
-            <div style="font-weight: bold; margin-bottom: 5px;">Price vs Budget:</div>
-            <div><i class="fa fa-circle" style="color:green"></i> &lt; 85% of budget</div>
-            <div><i class="fa fa-circle" style="color:lightgreen"></i> 85-100% of budget</div>
-            <div><i class="fa fa-circle" style="color:orange"></i> 100-115% of budget</div>
-            <div><i class="fa fa-circle" style="color:red"></i> &gt; 115% of budget</div>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(legend_html))
     
     # Add plugins
     MousePosition().add_to(m)
@@ -324,17 +246,12 @@ st.markdown(
 )
 
 # Initialize session state
-for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features', 'comparison_locations', 'budget_value', 'budget_radius_km', 'budget_points']:
+for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features', 'comparison_locations']:
     if key not in st.session_state:
-        st.session_state[key] = [] if key == 'comparison_locations' else (10000000.0 if key == 'budget_value' else (5 if key in ['budget_radius_km'] else (30 if key == 'budget_points' else None)))
+        st.session_state[key] = [] if key == 'comparison_locations' else None
 
 # Sidebar - Location Selection
 st.sidebar.header("📍 Location Selection")
-
-# Currency Toggle
-st.sidebar.markdown("---")
-st.sidebar.header("💱 Currency")
-currency = st.sidebar.radio("Display prices in", ["INR", "USD"], horizontal=True, key="currency")
 
 search_method = st.sidebar.radio(
     "Choose input method:",
@@ -363,36 +280,6 @@ if search_method == "📌 Enter Coordinates":
 else:
     st.sidebar.info("Click on the map to select a location.")
 st.sidebar.markdown("---")
-st.sidebar.header("💰 Budget Filter")
-enable_budget_overlay = st.sidebar.toggle("Show affordability overlay", value=False, key="budget_overlay")
-
-if enable_budget_overlay:
-    st.session_state.budget_value = st.sidebar.number_input(
-        f"Budget ({currency})",
-        min_value=0.0,
-        value=st.session_state.budget_value,
-        step=100000.0 if currency == "INR" else 1000.0,
-        key="budget_input"
-    )
-    st.session_state.budget_radius_km = st.sidebar.slider(
-        "Search radius (km)", 
-        1, 20, 
-        st.session_state.budget_radius_km, 
-        1, 
-        key="budget_radius_slider"
-    )
-    st.session_state.budget_points = st.sidebar.slider(
-        "Number of points", 
-        10, 100, 
-        st.session_state.budget_points, 
-        5, 
-        key="budget_points_slider"
-    )
-    budget_inr = st.session_state.budget_value * (USD_INR_RATE if currency == "USD" else 1)
-else:
-    budget_inr = 0.0
-
-st.sidebar.markdown("---")
 st.sidebar.header("🏡 Property Details")
 bedrooms = st.sidebar.slider("Bedrooms", 1, 6, 3, key="bed")
 bathrooms = st.sidebar.slider("Bathrooms", 1.0, 4.0, 2.0, 0.5, key="bath")
@@ -406,41 +293,11 @@ with col_map:
         '<div class="pp-card pp-map-card"><div class="pp-map-head">📍 Property Location</div>',
         unsafe_allow_html=True,
     )
-    budget_data = None
-    if enable_budget_overlay and st.session_state.budget_value > 0 and lat and lon:
-        import math
-        import random
-        
-        points = []
-        
-        for _ in range(st.session_state.budget_points):
-            radius_km = st.session_state.budget_radius_km * math.sqrt(random.random())
-            angle = random.uniform(0, 2 * math.pi)
-            
-            lat_delta = (radius_km / 111.32) * math.cos(angle)
-            lon_delta = (radius_km / (111.32 * math.cos(math.radians(lat)))) * math.sin(angle)
-            
-            point_lat = lat + lat_delta
-            point_lon = lon + lon_delta
-            
-            price_inr = random.uniform(0.5, 2.0) * budget_inr
-            
-            points.append({
-                'lat': point_lat,
-                'lon': point_lon,
-                'price': price_inr,
-                'price_str': format_money(price_inr, currency),
-                'color': get_price_color(price_inr, budget_inr)
-            })
-        
-        budget_data = {
-            'points': points,
-            'radius_km': st.session_state.budget_radius_km
-        }
-
     if lat and lon:
-        m = create_map(lat, lon, location_name, budget_data)
+        # ✅ FIX 1: Fresh map creation
+        m = create_map(lat, lon, location_name)
         
+        # ✅ FIX 3: Cloud-safe st_folium with error handling
         map_data = None
         try:
             map_data = st_folium(
@@ -452,6 +309,7 @@ with col_map:
         except Exception as e:
             st.warning("⚠️ Map temporarily unavailable. Please refresh the page.")
         
+        # ✅ FIX 2: Handle map clicks WITHOUT st.rerun()
         if search_method == "🗺️ Click on Map" and map_data and map_data.get("last_clicked"):
             clicked = map_data["last_clicked"]
             new_lat = float(clicked["lat"])
@@ -549,23 +407,16 @@ if lat and lon:
         
         try:
             # Use local service instead of HTTP
-            result = predict_price(
-                bedrooms=bedrooms,
-                bathrooms=bathrooms,
-                sqft_living=sqft,
-                lat=lat,
-                lon=lon
-            )
-
+            result = predict_price(bedrooms, bathrooms, sqft, lat, lon)
             price = result.get("predicted_price")
 
             # Price Display
             col_price1, col_price2, col_price3 = st.columns(3)
             with col_price1:
-                st.metric("Predicted Price", format_money(price, currency))
+                st.metric("Predicted Price", f"${price:,.0f}")
             with col_price2:
                 price_per_sqft_val = price / sqft if sqft > 0 else 0
-                st.metric("Price/sqft", format_money(price_per_sqft_val, currency))
+                st.metric("Price/sqft", f"${price_per_sqft_val:,.0f}")
             with col_price3:
                 st.metric("Property Size", f"{sqft:,} sqft")
 
@@ -800,13 +651,7 @@ if lat and lon:
                 
                 try:
                     # Use local service to get price and features
-                    price_data = predict_price(
-                        bedrooms=loc["bedrooms"],
-                        bathrooms=loc["bathrooms"],
-                        sqft_living=loc["sqft"],
-                        lat=loc["lat"],
-                        lon=loc["lon"]
-                    )
+                    price_data = predict_price(loc["bedrooms"], loc["bathrooms"], loc["sqft"], loc["lat"], loc["lon"])
                     predicted_price = price_data.get("predicted_price")
                     price_per_sqft = predicted_price / loc["sqft"] if loc["sqft"] > 0 else 0
 
