@@ -324,7 +324,7 @@ with col1:
             window.parent.document.dispatchEvent(event);
         }
     }
-    
+
     if (mapElement) {
         mapElement.addEventListener('load', function() {
             this.contentWindow.document.addEventListener('click', handleMapClick.bind(this));
