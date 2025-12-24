@@ -337,7 +337,7 @@ st.sidebar.header("💱 Currency")
 currency = st.sidebar.radio("Display prices in", ["INR", "USD"], horizontal=True, key="currency")
 
 search_method = st.sidebar.radio(
-    "Choose input method:"
+    "Choose input method:",
     ["📌 Enter Coordinates", "🗺️ Click on Map"],
     key="search_method"
 )
