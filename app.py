@@ -250,6 +250,12 @@ for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features'
     if key not in st.session_state:
         st.session_state[key] = [] if key == 'comparison_locations' else None
 
+# Set default coordinates if not set
+if st.session_state.selected_lat is None or st.session_state.selected_lon is None:
+    st.session_state.selected_lat = 28.6139  # Default to New Delhi
+    st.session_state.selected_lon = 77.2090
+    st.session_state.location_name = "New Delhi, India"
+
 # Sidebar - Location Selection
 st.sidebar.header("📍 Location Selection")
 
@@ -259,6 +265,7 @@ search_method = st.sidebar.radio(
     key="search_method"
 )
 
+# Always get the latest values from session state
 lat = st.session_state.selected_lat
 lon = st.session_state.selected_lon
 location_name = st.session_state.location_name
@@ -267,16 +274,31 @@ location_name = st.session_state.location_name
 if search_method == "📌 Enter Coordinates":
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        lat_input = st.number_input("Latitude", value=lat or 28.6139, format="%.5f", step=0.0001, key="lat_in")
+        lat_input = st.number_input("Latitude", 
+                                  value=float(lat) if lat is not None else 28.6139, 
+                                  format="%.5f", 
+                                  step=0.0001, 
+                                  key="lat_in")
     with col2:
-        lon_input = st.number_input("Longitude", value=lon or 77.2090, format="%.5f", step=0.0001, key="lon_in")
+        lon_input = st.number_input("Longitude", 
+                                   value=float(lon) if lon is not None else 77.2090, 
+                                   format="%.5f", 
+                                   step=0.0001, 
+                                   key="lon_in")
     
     if st.sidebar.button("✅ Use Coordinates", use_container_width=True):
-        st.session_state.selected_lat = lat_input
-        st.session_state.selected_lon = lon_input
-        st.session_state.location_name = f"{lat_input:.5f}, {lon_input:.5f}"
-        st.session_state.location_features = None  # Clear cached features
-        st.rerun()
+        try:
+            # Validate coordinates
+            if not (-90 <= lat_input <= 90 and -180 <= lon_input <= 180):
+                st.sidebar.error("Invalid coordinates. Latitude must be between -90 and 90, and Longitude between -180 and 180.")
+            else:
+                st.session_state.selected_lat = float(lat_input)
+                st.session_state.selected_lon = float(lon_input)
+                st.session_state.location_name = f"{lat_input:.5f}, {lon_input:.5f}"
+                st.session_state.location_features = None  # Clear cached features
+                st.rerun()
+        except Exception as e:
+            st.sidebar.error(f"Error setting coordinates: {str(e)}")
 else:
     st.sidebar.info("Click on the map to select a location.")
 
