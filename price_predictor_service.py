@@ -11,12 +11,11 @@ from feature_extractor import extract_all_features
 from nearby_amenities import get_nearby_amenities as get_amenities_data
 
 
-# ✅ Load pre-trained model
 @st.cache_resource
 def load_price_model():
     """Load the pre-trained price prediction model"""
     try:
-        model_path = os.path.join(os.path.dirname(__file__), "price_model.pkl")
+        model_path = os.path.join(os.path.dirname(__file__), "model", "price_model.pkl")
         if os.path.exists(model_path):
             return joblib.load(model_path)
     except Exception as e:
@@ -26,10 +25,7 @@ def load_price_model():
 
 @st.cache_data(ttl=3600, max_entries=128)
 def get_features(lat: float, lon: float) -> Dict:
-    """Cached wrapper: return satellite features (NDVI, NDWI, road density).
-
-    Caching reduces repeated SentinelHub/Overpass calls for the same location.
-    """
+    """Return satellite features (NDVI, NDWI, road density) with caching."""
     try:
         features = extract_all_features(lat, lon)
         return {
@@ -47,19 +43,7 @@ def get_features(lat: float, lon: float) -> Dict:
 
 
 def predict_price(bedrooms: int, bathrooms: float, sqft_living: int, lat: float, lon: float) -> Dict:
-    """
-    Predict property price based on features.
-    
-    Args:
-        bedrooms: Number of bedrooms
-        bathrooms: Number of bathrooms
-        sqft_living: Living area in square feet
-        lat: Latitude
-        lon: Longitude
-        
-    Returns:
-        Dict with: predicted_price, explanation, location_context, features
-    """
+    """Predict property price using all 18 features the model was trained with."""
     try:
         model = load_price_model()
         
@@ -78,88 +62,98 @@ def predict_price(bedrooms: int, bathrooms: float, sqft_living: int, lat: float,
         # Get satellite features
         sat_features = get_features(lat, lon)
         
-        # ✅ Prepare features for model prediction with proper dtype
-        # The model expects: [bedrooms, bathrooms, sqft_living] as float64
-        bedrooms = float(bedrooms)
-        bathrooms = float(bathrooms)
-        sqft_living = float(sqft_living)
+        # Default values for other features
+        default_features = {
+            "sqft_lot": sqft_living * 2,
+            "floors": 1.0,
+            "waterfront": 0,
+            "view": 0,
+            "condition": 3,
+            "grade": 7,
+            "sqft_above": sqft_living * 0.8,
+            "sqft_basement": sqft_living * 0.2,
+            "yr_built": 2000,
+            "yr_renovated": 0,
+            "zipcode": 98001,
+            "lat": lat,
+            "long": lon,
+            "sqft_living15": sqft_living,
+            "sqft_lot15": sqft_living * 2
+        }
         
-        X = np.array([[bedrooms, bathrooms, sqft_living]], dtype=np.float64)
+        # Prepare features in the exact order the model expects
+        X = np.array([[
+            float(bedrooms),    # bedrooms
+            float(bathrooms),   # bathrooms
+            float(sqft_living), # sqft_living
+            default_features["sqft_lot"],
+            default_features["floors"],
+            default_features["waterfront"],
+            default_features["view"],
+            default_features["condition"],
+            default_features["grade"],
+            default_features["sqft_above"],
+            default_features["sqft_basement"],
+            default_features["yr_built"],
+            default_features["yr_renovated"],
+            default_features["zipcode"],
+            float(lat),        # lat
+            float(lon),        # long
+            default_features["sqft_living15"],
+            default_features["sqft_lot15"]
+        ]], dtype=np.float64)
+        
+        # Make prediction
         predicted_price = float(model.predict(X)[0])
         
-        # ✅ Generate explanation
+        # Generate explanation
         reasons = []
-        
-        # Property features
         if bedrooms >= 3:
             reasons.append(f"{bedrooms} bedrooms add value")
         if bathrooms >= 2:
             reasons.append(f"{bathrooms} bathrooms increase desirability")
         if sqft_living > 1500:
-            reasons.append(f"Large living area ({sqft_living} sqft) adds premium")
+            reasons.append(f"Large living area ({sqft_living} sqft)")
         elif sqft_living < 800:
-            reasons.append("Smaller property reduces price")
+            reasons.append("Compact living space")
+            
+        if sat_features.get('ndvi', 0) > 0.3:
+            reasons.append("Good greenery in the area")
+        if sat_features.get('road_density', 0) > 0.5:
+            reasons.append("Well-connected location")
+            
+        explanation = "This price is based on " + ", ".join(reasons) if reasons else "Standard market pricing"
         
-        # Location features
-        ndvi = sat_features.get("ndvi", 0)
-        ndwi = sat_features.get("ndwi", 0)
-        road_density = sat_features.get("road_density", 0.3)
-        
-        if ndvi > 0.3:
-            reasons.append("Green, park-like neighborhood increases value")
-        if ndwi > 0.2:
-            reasons.append("Water proximity adds premium")
-        if road_density > 0.6:
-            reasons.append("Excellent connectivity boosts price")
-        
-        explanation = " + ".join(reasons) if reasons else "Premium location"
-        
-        # Location context
-        location_context = "Premium area" if predicted_price > 800000 else "Standard area"
-        if ndvi > 0.3:
-            location_context += " with excellent greenery"
-        if road_density > 0.6:
-            location_context += " and great connectivity"
+        location_context = "Prime location" if (sat_features.get('ndvi', 0) > 0.3 and 
+                                             sat_features.get('road_density', 0) > 0.4) else "Standard location"
         
         return {
-            "predicted_price": predicted_price,
+            "predicted_price": max(100000, predicted_price),
             "explanation": explanation,
             "location_context": location_context,
             "features": {
                 "bedrooms": bedrooms,
                 "bathrooms": bathrooms,
                 "sqft_living": sqft_living,
-                "ndvi": ndvi,
-                "ndwi": ndwi,
-                "road_density": road_density
+                **sat_features,
+                **{k: v for k, v in default_features.items() if k not in ['lat', 'long']}
             }
         }
-    
     except Exception as e:
+        st.error(f"Prediction error: {str(e)}")
         return {
             "predicted_price": 500000,
-            "explanation": f"Could not calculate: {str(e)}",
-            "location_context": "Default estimate",
-            "features": {
-                "bedrooms": bedrooms,
-                "bathrooms": bathrooms,
-                "sqft_living": sqft_living,
-                "ndvi": 0.0,
-                "ndwi": 0.0,
-                "road_density": 0.3
-            }
+            "explanation": "Error in prediction",
+            "location_context": "Error in prediction",
+            "features": {}
         }
 
 
 @st.cache_data(ttl=3600, max_entries=128)
 def get_nearby_amenities(lat: float, lon: float, radius: int = 1000) -> Dict:
-    """Cached wrapper: return nearby amenities using Overpass.
-
-    Caching reduces Overpass requests for repeated lookups.
-    """
+    """Return nearby amenities with caching to prevent redundant API calls."""
     try:
-        amenities = get_amenities_data(lat, lon, radius)
-        return amenities
+        return get_amenities_data(lat, lon, radius)
     except Exception as e:
         return {
             "total": 0,
