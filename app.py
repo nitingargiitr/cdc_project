@@ -549,7 +549,14 @@ if lat and lon:
         
         try:
             # Use local service instead of HTTP
-            result = predict_price(bedrooms, bathrooms, sqft, lat, lon)
+            result = predict_price(
+                bedrooms=bedrooms,
+                bathrooms=bathrooms,
+                sqft_living=sqft,
+                lat=lat,
+                lon=lon
+            )
+
             price = result.get("predicted_price")
 
             # Price Display
@@ -793,7 +800,13 @@ if lat and lon:
                 
                 try:
                     # Use local service to get price and features
-                    price_data = predict_price(loc["bedrooms"], loc["bathrooms"], loc["sqft"], loc["lat"], loc["lon"])
+                    price_data = predict_price(
+                        bedrooms=loc["bedrooms"],
+                        bathrooms=loc["bathrooms"],
+                        sqft_living=loc["sqft"],
+                        lat=loc["lat"],
+                        lon=loc["lon"]
+                    )
                     predicted_price = price_data.get("predicted_price")
                     price_per_sqft = predicted_price / loc["sqft"] if loc["sqft"] > 0 else 0
 
