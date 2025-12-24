@@ -446,8 +446,24 @@ if lat and lon:
         st.header("Price Prediction")
         
         try:
-            # Use local service instead of HTTP
-            result = predict_price(bedrooms, bathrooms, sqft, lat, lon)
+            # Use local service with all property features
+            result = predict_price(
+                bedrooms=bedrooms,
+                bathrooms=bathrooms,
+                sqft_living=sqft_living,
+                lat=lat,
+                lon=lon,
+                sqft_lot=sqft_lot,
+                floors=floors,
+                waterfront=1 if waterfront else 0,
+                view=1 if view else 0,
+                condition=condition,
+                grade=grade,
+                sqft_above=sqft_above,
+                sqft_basement=sqft_basement,
+                yr_built=yr_built,
+                yr_renovated=yr_renovated
+            )
             price = result.get("predicted_price")
 
             # Price Display
@@ -690,8 +706,24 @@ if lat and lon:
                 status_text.text(f"Analyzing {loc['name']}...")
                 
                 try:
-                    # Use local service to get price and features
-                    price_data = predict_price(loc["bedrooms"], loc["bathrooms"], loc["sqft"], loc["lat"], loc["lon"])
+                    # Use local service with all property features for comparison
+                    price_data = predict_price(
+                        bedrooms=loc["bedrooms"],
+                        bathrooms=loc["bathrooms"],
+                        sqft_living=loc.get("sqft_living", loc["sqft"]),
+                        lat=loc["lat"],
+                        lon=loc["lon"],
+                        sqft_lot=loc.get("sqft_lot", 5000),
+                        floors=loc.get("floors", 1),
+                        waterfront=loc.get("waterfront", 0),
+                        view=loc.get("view", 0),
+                        condition=loc.get("condition", 3),
+                        grade=loc.get("grade", 7),
+                        sqft_above=loc.get("sqft_above", loc.get("sqft_living", loc["sqft"])),
+                        sqft_basement=loc.get("sqft_basement", 0),
+                        yr_built=loc.get("yr_built", 2000),
+                        yr_renovated=loc.get("yr_renovated", 0)
+                    )
                     predicted_price = price_data.get("predicted_price")
                     price_per_sqft = predicted_price / loc["sqft"] if loc["sqft"] > 0 else 0
 
