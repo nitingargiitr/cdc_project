@@ -31,9 +31,11 @@ if 'budget_radius_km' not in st.session_state:
     st.session_state.budget_radius_km = 5
 if 'budget_points' not in st.session_state:
     st.session_state.budget_points = 30
+if 'last_clicked' not in st.session_state:
+    st.session_state.last_clicked = None
 
 # Constants
-USD_INR_RATE = 90.0  # 1 USD = 90 INR (update this as needed)
+USD_INR_RATE = 90.0  # 1 USD = 90 INR
 
 # Custom CSS for better UI
 st.markdown("""
@@ -92,6 +94,8 @@ def money_value(amount, currency="INR"):
 
 def get_price_color(price, budget):
     """Get color based on price relative to budget"""
+    if budget == 0:
+        return "blue"
     ratio = price / budget
     if ratio < 0.7:
         return "green"
@@ -104,7 +108,9 @@ def get_price_color(price, budget):
 
 def create_map(lat, lon, zoom=12, budget_data=None):
     """Create a folium map centered at lat, lon"""
-    m = folium.Map(location=[lat, lon], zoom_start=zoom, tiles="cartodbpositron")
+    m = folium.Map(location=[lat, lon], zoom_start=zoom, 
+                  tiles="cartodbpositron", 
+                  attr='© OpenStreetMap contributors')
     
     # Add main marker
     folium.Marker(
@@ -114,44 +120,17 @@ def create_map(lat, lon, zoom=12, budget_data=None):
     ).add_to(m)
     
     # Add budget overlay if enabled
-    if budget_data:
+    if budget_data and 'points' in budget_data:
         for point in budget_data['points']:
             folium.CircleMarker(
                 location=[point['lat'], point['lon']],
                 radius=5,
-                color=point['color'],
+                color=point.get('color', 'blue'),
                 fill=True,
-                fill_color=point['color'],
+                fill_color=point.get('color', 'blue'),
                 fill_opacity=0.7,
-                popup=f"Price: {point['price_str']}"
+                popup=f"Price: {point.get('price_str', 'N/A')}"
             ).add_to(m)
-            
-        # Add legend
-        legend_html = """
-        <div style="position: fixed; 
-                    bottom: 50px; left: 50px; width: 200px; 
-                    background: white; padding: 10px; 
-                    border: 1px solid grey; z-index: 1000;
-                    font-size: 14px;">
-            <div style="display: flex; align-items: center; margin: 5px 0;">
-                <div style="width: 15px; height: 15px; background: green; margin-right: 5px;"></div>
-                <span>Below 70% of budget</span>
-            </div>
-            <div style="display: flex; align-items: center; margin: 5px 0;">
-                <div style="width: 15px; height: 15px; background: orange; margin-right: 5px;"></div>
-                <span>70-100% of budget</span>
-            </div>
-            <div style="display: flex; align-items: center; margin: 5px 0;">
-                <div style="width: 15px; height: 15px; background: red; margin-right: 5px;"></div>
-                <span>100-130% of budget</span>
-            </div>
-            <div style="display: flex; align-items: center; margin: 5px 0;">
-                <div style="width: 15px; height: 15px; background: darkred; margin-right: 5px;"></div>
-                <span>Above 130% of budget</span>
-            </div>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(legend_html))
     
     return m
 
@@ -202,60 +181,6 @@ def create_pdf(data, filename="property_analysis.pdf"):
 
 # Sidebar
 with st.sidebar:
-    st.header("🔍 Location Search")
-    
-    # Location input
-    location_query = st.text_input("Search for a location", 
-                                 value=st.session_state.location_name if 'location_name' in st.session_state else "",
-                                 placeholder="Enter a location (e.g., 'Mumbai, India')")
-    
-    # Coordinates input
-    st.subheader("Or enter coordinates:")
-    col1, col2 = st.columns(2)
-    with col1:
-        lat_input = st.number_input("Latitude", 
-                                  value=st.session_state.selected_lat if st.session_state.selected_lat else 19.0760,
-                                  format="%.6f",
-                                  step=0.000001)
-    with col2:
-        lon_input = st.number_input("Longitude",
-                                  value=st.session_state.selected_lon if st.session_state.selected_lon else 72.8777,
-                                  format="%.6f",
-                                  step=0.000001)
-    
-    # Update button
-    if st.button("Update Location", use_container_width=True):
-        st.session_state.selected_lat = lat_input
-        st.session_state.selected_lon = lon_input
-        if location_query:
-            st.session_state.location_name = location_query
-        elif st.session_state.selected_lat and st.session_state.selected_lon:
-            st.session_state.location_name = f"Location at {st.session_state.selected_lat:.4f}, {st.session_state.selected_lon:.4f}"
-        st.experimental_rerun()
-    
-    st.markdown("---")  # Add a separator
-    
-    # Currency Toggle
-    st.header("💰 Currency")
-    currency = st.radio("Select currency", ["INR", "USD"], 
-                       index=0 if 'currency' not in st.session_state else (0 if st.session_state.currency == "INR" else 1),
-                       key="currency")
-    
-    st.markdown("---")  # Add a separator
-
-# Main app layout
-st.title("🏠 Property Price Predictor")
-st.markdown("""
-    <div style="background-color: #f0f8ff; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-        <p style="margin: 0; color: #1e40af; font-size: 1rem;">
-            Click anywhere on the map to select a location and get price predictions.
-            Adjust property details in the sidebar to see how they affect the price.
-        </p>
-    </div>
-""", unsafe_allow_html=True)
-
-# Sidebar
-with st.sidebar:
     st.header("⚙️ Settings")
     
     # Currency Toggle
@@ -277,15 +202,13 @@ with st.sidebar:
             "Search radius (km)", 
             1, 20, 
             st.session_state.budget_radius_km, 
-            1, 
-            key="budget_radius_slider"
+            1
         )
         st.session_state.budget_points = st.slider(
             "Number of points", 
             10, 100, 
             st.session_state.budget_points, 
-            5, 
-            key="budget_points_slider"
+            5
         )
         budget_inr = st.session_state.budget_value * (USD_INR_RATE if currency == "USD" else 1)
     else:
@@ -296,6 +219,17 @@ with st.sidebar:
     bedrooms = st.number_input("Bedrooms", min_value=1, max_value=10, value=3, step=1)
     bathrooms = st.number_input("Bathrooms", min_value=1.0, max_value=10.0, value=2.0, step=0.5)
     sqft = st.number_input("Living Area (sqft)", min_value=300, max_value=10000, value=1500, step=50)
+
+# Main app layout
+st.title("🏠 Property Price Predictor")
+st.markdown("""
+    <div style="background-color: #f0f8ff; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+        <p style="margin: 0; color: #1e40af; font-size: 1rem;">
+            Click anywhere on the map to select a location and get price predictions.
+            Adjust property details in the sidebar to see how they affect the price.
+        </p>
+    </div>
+""", unsafe_allow_html=True)
 
 # Map display
 col1, col2 = st.columns([3, 1])
@@ -309,7 +243,8 @@ with col1:
     # Budget overlay data
     budget_data = None
     if enable_budget_overlay and budget_inr > 0 and lat and lon:
-        current_params = (lat, lon, st.session_state.budget_radius_km, st.session_state.budget_points, budget_inr)
+        current_params = (lat, lon, st.session_state.budget_radius_km, 
+                         st.session_state.budget_points, budget_inr)
         
         # Only regenerate points if parameters changed
         if (st.session_state.budget_points_data is None or 
@@ -352,135 +287,32 @@ with col1:
     
     # Create and display map
     m = create_map(lat, lon, budget_data=budget_data)
-    map_data = folium_static(m, width=800, height=600)
+    folium_static(m, width=800, height=600)
     
-    # Handle map click
-    if map_data:
-        if 'last_clicked' in st.session_state and st.session_state.last_clicked:
-            click_data = st.session_state.last_clicked
-            st.session_state.selected_lat = click_data['lat']
-            st.session_state.selected_lon = click_data['lng']
-            st.session_state.location_name = f"Location ({click_data['lat']:.4f}, {click_data['lng']:.4f})"
-            st.rerun()
-
-with col2:
-    st.header("📍 Selected Location")
-    st.write(st.session_state.location_name)
+    # Add JavaScript for map click handling
+    st.components.v1.html("""
+    <script>
+    const doc = window.parent.document;
+    const mapElement = doc.querySelector('.folium-map iframe');
     
-    if st.session_state.selected_lat and st.session_state.selected_lat:
-        # Get prediction
-        prediction = predict_price(
-            bedrooms=bedrooms,
-            bathrooms=bathrooms,
-            sqft_living=sqft,
-            lat=st.session_state.selected_lat,
-            lon=st.session_state.selected_lon
-        )
-        
-        # Display prediction
-        st.metric(
-            "Predicted Price", 
-            format_money(prediction['predicted_price'], currency),
-            delta=None,
-            help=prediction['explanation']
-        )
-        
-        st.metric(
-            "Price per SqFt",
-            format_money(prediction['predicted_price'] / sqft, currency),
-            delta=None
-        )
-        
-        # Location context
-        st.markdown("### 🌍 Location Context")
-        st.info(prediction['location_context'])
-        
-        # Features
-        st.markdown("### 📊 Location Features")
-        features = prediction.get('features', {})
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.metric("🌿 Greenery (NDVI)", f"{features.get('ndvi', 0):.2f}")
-            st.metric("💧 Water Index (NDWI)", f"{features.get('ndwi', 0):.2f}")
-        
-        with col2:
-            st.metric("🛣️ Road Density", f"{features.get('road_density', 0.3):.2f}")
-        
-        # Download buttons
-        st.markdown("### 📥 Download")
-        
-        # Prepare data for export
-        export_data = {
-            "location": st.session_state.location_name,
-            "price": format_money(prediction['predicted_price'], currency),
-            "price_per_sqft": format_money(prediction['predicted_price'] / sqft, currency),
-            "bedrooms": bedrooms,
-            "bathrooms": bathrooms,
-            "sqft_living": sqft,
-            "location_context": prediction['location_context'],
-            "features": features
-        }
-        
-        # CSV Download
-        csv = pd.DataFrame([export_data]).to_csv(index=False)
-        st.download_button(
-            label="📄 Download as CSV",
-            data=csv,
-            file_name="property_analysis.csv",
-            mime="text/csv"
-        )
-        
-        # PDF Download
-        pdf_path = create_pdf(export_data)
-        with open(pdf_path, "rb") as f:
-            pdf_data = f.read()
-        
-        st.download_button(
-            label="📑 Download as PDF",
-            data=pdf_data,
-            file_name="property_analysis.pdf",
-            mime="application/pdf"
-        )
-        
-        # Clean up
-        try:
-            os.remove(pdf_path)
-        except:
-            pass
-
-# Add custom JavaScript to capture map clicks
-st.components.v1.html("""
-<script>
-const doc = window.parent.document;
-doc.addEventListener('click', function(e) {
-    const mapElement = doc.querySelector('.folium-map');
-    if (mapElement && mapElement.contains(e.target)) {
-        const rect = mapElement.getBoundingClientRect();
+    function handleMapClick(e) {
+        const rect = this.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        const event = new CustomEvent('mapClick', { 
-            detail: { x: x, y: y } 
-        });
-        window.parent.document.dispatchEvent(event);
-    }
-});
-
-window.parent.document.addEventListener('mapClick', function(e) {
-    const data = { lat: null, lng: null };
-    const mapFrame = window.parent.document.querySelector('.folium-map');
-    if (mapFrame) {
-        const map = mapFrame.contentWindow || mapFrame.contentDocument;
-        if (map && map.map) {
-            const point = map.map.containerPointToLatLng([e.detail.y, e.detail.x]);
-            data.lat = point.lat;
-            data.lng = data.lng = point.lng;
+        
+        const map = this.contentWindow.map;
+        if (map) {
+            const point = map.containerPointToLatLng([y, x]);
+            const data = {
+                lat: point.lat,
+                lng: point.lng
+            };
             
-            // Send data to Streamlit
-            const s = new URLSearchParams(window.parent.location.search);
-            s.set('lat', data.lat);
-            s.set('lng', data.lng);
-            window.parent.history.pushState({}, '', '?' + s.toString());
+            // Update URL
+            const url = new URL(window.parent.location);
+            url.searchParams.set('lat', data.lat);
+            url.searchParams.set('lng', data.lng);
+            window.parent.history.pushState({}, '', url);
             
             // Store in session state
             const stJson = JSON.parse(window.parent.sessionStorage.getItem('_stcore:session-state') || '{}');
@@ -492,9 +324,104 @@ window.parent.document.addEventListener('mapClick', function(e) {
             window.parent.document.dispatchEvent(event);
         }
     }
-});
-</script>
-""", height=0)
+    
+    if (mapElement) {
+        mapElement.addEventListener('load', function() {
+            this.contentWindow.document.addEventListener('click', handleMapClick.bind(this));
+        });
+    }
+    </script>
+    """, height=0)
+
+with col2:
+    st.header("📍 Selected Location")
+    st.write(st.session_state.location_name)
+    
+    if st.session_state.selected_lat is not None and st.session_state.selected_lon is not None:
+        try:
+            # Get prediction
+            prediction = predict_price(
+                bedrooms=bedrooms,
+                bathrooms=bathrooms,
+                sqft_living=sqft,
+                lat=st.session_state.selected_lat,
+                lon=st.session_state.selected_lon
+            )
+            
+            # Display prediction
+            st.metric(
+                "Predicted Price", 
+                format_money(prediction['predicted_price'], currency),
+                delta=None,
+                help=prediction.get('explanation', '')
+            )
+            
+            st.metric(
+                "Price per SqFt",
+                format_money(prediction['predicted_price'] / sqft, currency),
+                delta=None
+            )
+            
+            # Location context
+            st.markdown("### 🌍 Location Context")
+            st.info(prediction.get('location_context', 'No location context available'))
+            
+            # Features
+            st.markdown("### 📊 Location Features")
+            features = prediction.get('features', {})
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.metric("🌿 Greenery (NDVI)", f"{features.get('ndvi', 0):.2f}")
+                st.metric("💧 Water Index (NDWI)", f"{features.get('ndwi', 0):.2f}")
+            
+            with col2:
+                st.metric("🛣️ Road Density", f"{features.get('road_density', 0.3):.2f}")
+            
+            # Download buttons
+            st.markdown("### 📥 Download")
+            
+            # Prepare data for export
+            export_data = {
+                "location": st.session_state.location_name,
+                "price": format_money(prediction['predicted_price'], currency),
+                "price_per_sqft": format_money(prediction['predicted_price'] / sqft, currency),
+                "bedrooms": bedrooms,
+                "bathrooms": bathrooms,
+                "sqft_living": sqft,
+                "location_context": prediction.get('location_context', ''),
+                "features": features
+            }
+            
+            # CSV Download
+            csv = pd.DataFrame([export_data]).to_csv(index=False)
+            st.download_button(
+                label="📄 Download as CSV",
+                data=csv,
+                file_name="property_analysis.csv",
+                mime="text/csv"
+            )
+            
+            # PDF Download
+            pdf_path = create_pdf(export_data)
+            with open(pdf_path, "rb") as f:
+                pdf_data = f.read()
+            
+            st.download_button(
+                label="📑 Download as PDF",
+                data=pdf_data,
+                file_name="property_analysis.pdf",
+                mime="application/pdf"
+            )
+            
+            # Clean up
+            try:
+                os.remove(pdf_path)
+            except:
+                pass
+                
+        except Exception as e:
+            st.error(f"Error getting prediction: {str(e)}")
 
 # Handle URL parameters for sharing
 query_params = st.experimental_get_query_params()
@@ -504,11 +431,19 @@ if 'lat' in query_params and 'lng' in query_params:
         lon = float(query_params['lng'][0])
         st.session_state.selected_lat = lat
         st.session_state.selected_lon = lon
-        st.session_state.location_name = f"Shared Location ({lat:.4f}, {lon:.4f})"
-        st.rerun()
+        st.session_state.location_name = f"Location ({lat:.4f}, {lon:.4f})"
+        if 'last_clicked' not in st.session_state:
+            st.session_state.last_clicked = {'lat': lat, 'lng': lon}
+        st.experimental_rerun()
     except:
         pass
 
-# Store last clicked position in session state
-if 'last_clicked' not in st.session_state:
-    st.session_state.last_clicked = None
+# Handle map click from session state
+if 'last_clicked' in st.session_state and st.session_state.last_clicked:
+    click_data = st.session_state.last_clicked
+    if (st.session_state.selected_lat != click_data['lat'] or 
+        st.session_state.selected_lon != click_data['lng']):
+        st.session_state.selected_lat = click_data['lat']
+        st.session_state.selected_lon = click_data['lng']
+        st.session_state.location_name = f"Location ({click_data['lat']:.4f}, {click_data['lng']:.4f})"
+        st.experimental_rerun()
