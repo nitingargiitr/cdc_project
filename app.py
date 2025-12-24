@@ -324,9 +324,9 @@ st.markdown(
 )
 
 # Initialize session state
-for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features', 'comparison_locations']:
+for key in ['selected_lat', 'selected_lon', 'location_name', 'location_features', 'comparison_locations', 'budget_value', 'budget_radius_km', 'budget_points']:
     if key not in st.session_state:
-        st.session_state[key] = [] if key == 'comparison_locations' else None
+        st.session_state[key] = [] if key == 'comparison_locations' else (10000000.0 if key == 'budget_value' else (5 if key in ['budget_radius_km'] else (30 if key == 'budget_points' else None)))
 
 # Sidebar - Location Selection
 st.sidebar.header("📍 Location Selection")
@@ -367,16 +367,30 @@ st.sidebar.header("💰 Budget Filter")
 enable_budget_overlay = st.sidebar.toggle("Show affordability overlay", value=False, key="budget_overlay")
 
 if enable_budget_overlay:
-    budget_value = st.sidebar.number_input(
+    st.session_state.budget_value = st.sidebar.number_input(
         f"Budget ({currency})",
         min_value=0.0,
-        value=10000000.0 if currency == "INR" else 120000.0,
+        value=st.session_state.budget_value,
         step=100000.0 if currency == "INR" else 1000.0,
-        key="budget_value"
+        key="budget_input"
     )
-    budget_radius_km = st.sidebar.slider("Search radius (km)", 1, 20, 5, 1, key="budget_radius_km")
-    budget_points = st.sidebar.slider("Number of points", 10, 100, 30, 5, key="budget_points")
-    budget_inr = budget_value * (USD_INR_RATE if currency == "USD" else 1)
+    st.session_state.budget_radius_km = st.sidebar.slider(
+        "Search radius (km)", 
+        1, 20, 
+        st.session_state.budget_radius_km, 
+        1, 
+        key="budget_radius_slider"
+    )
+    st.session_state.budget_points = st.sidebar.slider(
+        "Number of points", 
+        10, 100, 
+        st.session_state.budget_points, 
+        5, 
+        key="budget_points_slider"
+    )
+    budget_inr = st.session_state.budget_value * (USD_INR_RATE if currency == "USD" else 1)
+else:
+    budget_inr = 0.0
 
 st.sidebar.markdown("---")
 st.sidebar.header("🏡 Property Details")
@@ -393,14 +407,14 @@ with col_map:
         unsafe_allow_html=True,
     )
     budget_data = None
-    if enable_budget_overlay and budget_value > 0 and lat and lon:
+    if enable_budget_overlay and st.session_state.budget_value > 0 and lat and lon:
         import math
         import random
         
         points = []
         
-        for _ in range(budget_points):
-            radius_km = budget_radius_km * math.sqrt(random.random())
+        for _ in range(st.session_state.budget_points):
+            radius_km = st.session_state.budget_radius_km * math.sqrt(random.random())
             angle = random.uniform(0, 2 * math.pi)
             
             lat_delta = (radius_km / 111.32) * math.cos(angle)
@@ -421,7 +435,7 @@ with col_map:
         
         budget_data = {
             'points': points,
-            'radius_km': budget_radius_km
+            'radius_km': st.session_state.budget_radius_km
         }
 
     if lat and lon:
