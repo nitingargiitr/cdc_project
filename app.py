@@ -82,7 +82,7 @@ def format_money(amount, currency="INR"):
     if currency == "USD":
         return f"${amount:,.0f}"
     else:  # INR
-        return f"₹{amount:,.0f}"
+        return f"INR {amount:,.0f}"
 
 def money_value(amount, currency="INR"):
     """Convert amount to float based on currency"""
