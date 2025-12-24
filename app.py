@@ -423,6 +423,44 @@ with col2:
         except Exception as e:
             st.error(f"Error getting prediction: {str(e)}")
 
+# Add this to your sidebar section, right after the Property Details section
+with st.sidebar:
+    # ... (existing sidebar code) ...
+    
+    # Add this new section for coordinate input
+    st.markdown("---")
+    st.header("📍 Select Location")
+    
+    # Coordinate input fields
+    col1, col2 = st.columns(2)
+    with col1:
+        lat_input = st.number_input("Latitude", 
+                                  value=st.session_state.selected_lat if st.session_state.selected_lat else 28.6139,
+                                  format="%.6f",
+                                  step=0.000001)
+    with col2:
+        lon_input = st.number_input("Longitude",
+                                  value=st.session_state.selected_lon if st.session_state.selected_lon else 77.2090,
+                                  format="%.6f",
+                                  step=0.000001)
+    
+    # Update location button
+    if st.button("Update Location", key="update_location_btn"):
+        st.session_state.selected_lat = lat_input
+        st.session_state.selected_lon = lon_input
+        st.session_state.location_name = f"Location ({lat_input:.4f}, {lon_input:.4f})"
+        st.session_state.last_clicked = {'lat': lat_input, 'lng': lon_input}
+        st.experimental_rerun()
+    
+    # Instructions for map click
+    st.markdown("""
+    <div style="margin-top: 1rem; padding: 1rem; background-color: #f0f8ff; border-radius: 0.5rem;">
+        <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
+            <b>Or</b> click anywhere on the map to select a location.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
 # Handle URL parameters for sharing
 query_params = st.experimental_get_query_params()
 if 'lat' in query_params and 'lng' in query_params:
