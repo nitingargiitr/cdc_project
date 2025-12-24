@@ -14,6 +14,8 @@ from sentinelhub import (
 from sentinel_config import get_sh_config
 import requests
 import time
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
 
 def fetch_satellite_bands(lat, lon, size_pixels=256):
@@ -188,10 +190,32 @@ def get_road_density(lat, lon, radius_meters=500):
         return 0.3  # Default medium density
 
 
+def get_zipcode(lat, lon, max_retries=3):
+    """Get zipcode from coordinates using reverse geocoding."""
+    geolocator = Nominatim(user_agent="property_price_predictor")
+    location = None
+    retries = 0
+    
+    while retries < max_retries:
+        try:
+            location = geolocator.reverse((lat, lon), exactly_one=True, language="en")
+            if location and 'address' in location.raw and 'postcode' in location.raw['address']:
+                return location.raw['address']['postcode'].split('-')[0]  # Get first part if zip+4
+            break
+        except (GeocoderTimedOut, GeocoderServiceError) as e:
+            retries += 1
+            if retries == max_retries:
+                print(f"Could not get zipcode: {e}")
+                return None
+            time.sleep(1)  # Wait before retrying
+    
+    return None
+
+
 def extract_all_features(lat, lon):
     """
     Extract all visual and location-based features for a given location.
-    Returns a dictionary with NDVI, NDWI, and road_density.
+    Returns a dictionary with NDVI, NDWI, road_density, and zipcode.
     """
     try:
         # Fetch satellite bands
@@ -201,22 +225,27 @@ def extract_all_features(lat, lon):
         ndvi = calculate_ndvi(bands)
         ndwi = calculate_ndwi(bands)
         
-        # Get road density (this might take a moment)
+        # Get road density
         road_density = get_road_density(lat, lon)
         
+        # Get zipcode
+        zipcode = get_zipcode(lat, lon)
+        
         return {
-            "ndvi": ndvi,
-            "ndwi": ndwi,
-            "road_density": road_density,
+            'ndvi': ndvi,
+            'ndwi': ndwi,
+            'road_density': road_density,
+            'zipcode': zipcode,
             "success": True
         }
+        
     except Exception as e:
         print(f"Error extracting features: {e}")
         return {
-            "ndvi": 0.0,
-            "ndwi": 0.0,
-            "road_density": 0.3,
+            'ndvi': 0.0,
+            'ndwi': 0.0,
+            'road_density': 0.3,
+            'zipcode': '98178',  # Default Seattle zipcode
             "success": False,
             "error": str(e)
         }
-
