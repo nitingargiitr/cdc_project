@@ -303,42 +303,44 @@ else:
     st.sidebar.info("Click on the map to select a location.")
 
 # Property Details
-st.sidebar.markdown("---")
-st.sidebar.header("🏡 Property Details")
+with st.sidebar.expander("🏡 Property Details", expanded=True):
+    # Basic Details
+    st.subheader("Basic Details")
+    col1, col2 = st.columns(2)
+    with col1:
+        bedrooms = st.slider("Bedrooms", 1, 6, 3, key="bed")
+    with col2:
+        bathrooms = st.slider("Bathrooms", 1.0, 4.0, 2.0, 0.5, key="bath")
 
-# Basic Details
-st.sidebar.subheader("Basic Details")
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    bedrooms = st.slider("Bedrooms", 1, 6, 3, key="bed")
-with col2:
-    bathrooms = st.slider("Bathrooms", 1.0, 4.0, 2.0, 0.5, key="bath")
+    # Living Space
+    st.subheader("Living Space")
+    sqft_living = st.slider("Living Area (sqft)", 500, 4000, 1500, 50, key="sqft_living")
+    col1, col2 = st.columns(2)
+    with col1:
+        sqft_lot = st.slider("Lot Size (sqft)", 1000, 20000, 5000, 100, key="sqft_lot")
+    with col2:
+        floors = st.slider("Floors", 1, 4, 1, key="floors")
 
-# Living Space
-st.sidebar.subheader("Living Space")
-sqft_living = st.slider("Living Area (sqft)", 500, 4000, 1500, 50, key="sqft_living")
-sqft_lot = st.slider("Lot Size (sqft)", 1000, 20000, 5000, 100, key="sqft_lot")
-floors = st.slider("Floors", 1, 4, 1, key="floors")
+    # Property Features
+    st.subheader("Property Features")
+    col1, col2 = st.columns(2)
+    with col1:
+        condition = st.slider("Condition (1-5)", 1, 5, 3, key="condition")
+        grade = st.slider("Grade (1-13)", 1, 13, 7, key="grade")
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        waterfront = st.checkbox("Waterfront", key="waterfront")
+        view = st.checkbox("Good View", key="view")
 
-# Property Features
-st.sidebar.subheader("Property Features")
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    waterfront = st.checkbox("Waterfront", key="waterfront")
-    view = st.checkbox("Good View", key="view")
-with col2:
-    condition = st.slider("Condition (1-5)", 1, 5, 3, key="condition")
-    grade = st.slider("Grade (1-13)", 1, 13, 7, key="grade")
-
-# Additional Details
-st.sidebar.subheader("Additional Details")
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    sqft_above = st.number_input("Sqft Above Ground", min_value=0, value=1500, step=50, key="sqft_above")
-    yr_built = st.number_input("Year Built", min_value=1800, max_value=2025, value=2000, step=1, key="yr_built")
-with col2:
-    sqft_basement = st.number_input("Basement Area (sqft)", min_value=0, value=0, step=50, key="sqft_basement")
-    yr_renovated = st.number_input("Year Renovated (0 if never)", min_value=0, max_value=2025, value=0, step=1, key="yr_renovated")
+    # Additional Details
+    st.subheader("Additional Details")
+    col1, col2 = st.columns(2)
+    with col1:
+        sqft_above = st.number_input("Sqft Above", min_value=0, value=1500, step=50, key="sqft_above", help="Square footage above ground")
+        yr_built = st.number_input("Year Built", min_value=1800, max_value=2025, value=2000, step=1, key="yr_built")
+    with col2:
+        sqft_basement = st.number_input("Basement (sqft)", min_value=0, value=0, step=50, key="sqft_basement")
+        yr_renovated = st.number_input("Renovated (0=never)", min_value=0, max_value=2025, value=0, step=1, key="yr_renovated")
 
 # Set sqft_above to match sqft_living if not explicitly set
 if 'sqft_above' not in st.session_state or st.session_state.sqft_above is None:
