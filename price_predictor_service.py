@@ -31,7 +31,7 @@ def get_features(lat: float, lon: float) -> Dict:
     Caching reduces repeated API calls for the same location.
     """
     try:
-        features = extract_all_features(lat, lon)
+        features = extract_all_features(lat, lon) or {}
         return {
             "ndvi": features.get("ndvi", 0.0),
             "ndwi": features.get("ndwi", 0.0),
@@ -43,7 +43,8 @@ def get_features(lat: float, lon: float) -> Dict:
         return {
             "ndvi": 0.0,
             "ndwi": 0.0,
-            "road_density": 0.3
+            "road_density": 0.3,
+            "zipcode": "98178"  # Ensure zipcode is always returned
         }
 
 
@@ -116,7 +117,7 @@ def predict_price(bedrooms: int, bathrooms: float, sqft_living: int, lat: float,
             float(sqft_basement),
             float(yr_built),
             float(yr_renovated),
-            float(zipcode),  # Convert zipcode to float (will use numeric part)
+            float(zipcode) if zipcode and zipcode.isdigit() else 98178,  # Use provided zipcode or default
             float(lat),
             float(lon),
             float(sqft_living),  # sqft_living15 (same as sqft_living for now)
@@ -126,23 +127,26 @@ def predict_price(bedrooms: int, bathrooms: float, sqft_living: int, lat: float,
         X = np.array([feature_values], dtype=np.float64)
         predicted_price = float(model.predict(X)[0])
         
-        # ✅ Generate explanation
+        # Generate explanation
         reasons = []
         
         # Property features
         if bedrooms >= 3:
-            reasons.append(f"{bedrooms} bedrooms add value")
+            reasons.append(f"{int(bedrooms)} bedrooms add value")
         if bathrooms >= 2:
             reasons.append(f"{bathrooms} bathrooms increase desirability")
         if sqft_living > 1500:
-            reasons.append(f"Large living area ({sqft_living} sqft) adds premium")
+            reasons.append(f"Large living area ({int(sqft_living)} sqft) adds premium")
         elif sqft_living < 800:
             reasons.append("Smaller property reduces price")
         
+        # Get location features for explanation
+        location_features = get_features(lat, lon) or {}
+        
         # Location features
-        ndvi = sat_features.get("ndvi", 0)
-        ndwi = sat_features.get("ndwi", 0)
-        road_density = sat_features.get("road_density", 0.3)
+        ndvi = location_features.get("ndvi", 0)
+        ndwi = location_features.get("ndwi", 0)
+        road_density = location_features.get("road_density", 0.3)
         
         if ndvi > 0.3:
             reasons.append("Green, park-like neighborhood increases value")
