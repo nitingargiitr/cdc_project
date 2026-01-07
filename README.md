@@ -4,25 +4,23 @@ An AI-powered property price prediction system using machine learning with 85.77
 
 ---
 
-## 🎯 Quick Stats
+##  Quick Stats
 
-- **✨ Model Accuracy**: 85.77% R² on unseen validation data
-- **📊 Features Used**: 18 property attributes
-- **🎯 Training Samples**: 12,967
-- **✅ Validation Samples**: 3,242
-- **🔮 Test Predictions**: 5,404
-- **⚡ Top Feature**: Living Area (sqft_living - 19.6% importance)
+- **Model Accuracy**: 85.77% R² on unseen validation data
+- **Features Used**: 18 property attributes
+- **Training Samples**: 12,967
+- **Validation Samples**: 3,242
+- **Test Predictions**: 5,404
 
 ---
 
-## 🚀 Features
+##  Features
 
-- **🗺️ Interactive Map Interface** - Streamlit web UI with folium maps for location selection
-- **🤖 ML Price Prediction** - RandomForest model with 18 property features
-- **⚙️ REST API** - FastAPI backend for predictions
-- **🛰️ Satellite Integration** - Optional Sentinel Hub imagery (NDVI, NDWI calculation)
-- **📍 Location Features** - Waterfront, view, condition, grade, and proximity metrics
-- **💾 Production Ready** - Serialized model in `model/price_model.pkl`
+- **Interactive Map Interface** - Streamlit web UI with folium maps for location selection
+- **ML Price Prediction** - RandomForest model with 18 property features
+- **Satellite Integration** - Optional Sentinel Hub imagery (NDVI, NDWI calculation)
+- **Location Features** - Waterfront, view, condition, grade, and proximity metrics
+- **Production Ready** - Serialized model in `model/price_model.pkl`
 
 ---
 
@@ -69,22 +67,22 @@ cdc_project/
 
 ---
 
-## 📊 Model Performance
+##  Model Performance
 
 ### Training Results (12,967 samples)
 ```
-R² Score:  0.9565  (95.65% variance explained)
+R² Score:  0.9565 
 MAE:       $39,483.70
 RMSE:      $75,498.32
 ```
 
-### Validation Results (3,242 samples) - UNSEEN DATA ✨
+### Validation Results (3,242 samples) - UNSEEN DATA 
 ```
-R² Score:       0.8577  (85.77% variance explained)
+R² Score:       0.8577  
 MAE:            $73,640.01
 RMSE:           $133,616.46
 MAPE:           13.66%
-Overfitting:    9.87% gap (EXCELLENT - No overfitting!)
+Overfitting:    9.87% gap (No overfitting)
 ```
 
 ### Feature Importance (Top 10)
@@ -103,7 +101,7 @@ Overfitting:    9.87% gap (EXCELLENT - No overfitting!)
 
 ---
 
-## 🔧 Features Used in Model
+##  Features Used in Model
 
 The model uses **18 property features** for prediction:
 
@@ -117,7 +115,7 @@ The model uses **18 property features** for prediction:
 
 ---
 
-## 💻 Installation & Setup
+##  Installation & Setup
 
 ### Prerequisites
 - Python 3.9+
@@ -150,7 +148,7 @@ SENTINEL_CLIENT_SECRET=your_client_secret
 
 ---
 
-## 🏃 Running the Application
+##  Running the Application
 
 ### Option 1: Run Both Services Locally
 
@@ -180,43 +178,6 @@ This will:
 
 ---
 
-## 🌐 Cloud Deployment
-
-### Deploy FastAPI Backend
-
-The app is designed to work with a deployed backend. Use any of these platforms:
-
-#### Option A: Railway (Recommended)
-1. Create account at https://railway.app
-2. Connect GitHub repo
-3. Railway auto-detects and deploys FastAPI
-4. Get public URL
-
-#### Option B: Render
-1. Go to https://render.com
-2. New Web Service → GitHub
-3. Build: `pip install -r requirements.txt`
-4. Start: `uvicorn main:app --host 0.0.0.0 --port 8000`
-
-#### Option C: Heroku
-1. Create `Procfile`:
-```
-web: uvicorn main:app --host 0.0.0.0 --port=$PORT
-```
-2. Deploy via git
-
-### Update Streamlit Cloud Secrets
-
-Once backend is deployed:
-1. Go to Streamlit Cloud app settings
-2. Add secret:
-```toml
-API_BASE_URL = "https://your-backend-url.com"
-```
-
----
-
-## 📡 API Endpoints
 
 ### /predict - Price Prediction
 ```http
@@ -264,7 +225,7 @@ GET /ndvi?lat=47.5&lon=-122.3
 
 ---
 
-## 📈 Making Predictions
+##  Making Predictions
 
 ### Via Python
 ```python
@@ -302,11 +263,6 @@ print(f"Predicted Price: ${response.json()['predicted_price']:,.0f}")
 3. Adjust property parameters
 4. Get instant price prediction
 
-### Via cURL
-```bash
-curl "http://127.0.0.1:8000/predict?bedrooms=4&bathrooms=2.5&sqft_living=1810&sqft_lot=9240&floors=2&waterfront=0&view=0&condition=3&grade=7&sqft_above=1810&sqft_basement=0&yr_built=1961&yr_renovated=0&zipcode=98055&lat=47.4362&long=-122.187&sqft_living15=1660&sqft_lot15=9240"
-```
-
 ---
 
 ## 📊 Data & Training Details
@@ -343,27 +299,11 @@ curl "http://127.0.0.1:8000/predict?bedrooms=4&bathrooms=2.5&sqft_living=1810&sq
 # Sentinel Hub (optional)
 SENTINEL_CLIENT_ID=your_id
 SENTINEL_CLIENT_SECRET=your_secret
-
-# API Configuration (for Streamlit Cloud)
-API_BASE_URL=https://your-backend-url.com
 ```
 
 ### Python Version
 - Minimum: 3.9
 - Tested: 3.11
-
----
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "Connection refused" on Streamlit | Ensure FastAPI backend is running on port 8000 |
-| Model not found error | Run `python train_tabular.py` to train and save model |
-| Satellite features are zeros | Check Sentinel Hub credentials in `.env` |
-| Memory issues during training | Reduce model estimators or use smaller dataset sample |
-| Port 8000 already in use | Kill the process: `lsof -i :8000` then `kill -9 <PID>` |
-| Streamlit app won't connect to API | Verify `API_BASE_URL` in secrets if using cloud deployment |
 
 ---
 
@@ -379,7 +319,7 @@ API_BASE_URL=https://your-backend-url.com
 | `model/price_model.pkl` | Production ML model (BINARY) | 66 MB |
 | `data/train.xlsx` | Training dataset (12,967 rows) | 1.3 MB |
 | `data/validation.xlsx` | Validation dataset (3,242 rows) | 332 KB |
-| `predictions.csv` | Test set predictions (5,404 rows) | 159 KB |
+| `24116063_final.csv` | Test set predictions (5,404 rows) | 159 KB |
 
 ---
 
@@ -393,18 +333,9 @@ The model was developed using:
 - **FastAPI** for REST API
 - **Streamlit** for web UI
 
-### Key Improvements Made
-- ✅ Used all 18 available features (not just 3-6)
-- ✅ Proper 80/20 train/validation split
-- ✅ Optimized hyperparameters for generalization
-- ✅ Reduced overfitting to 9.87% gap
-- ✅ Achieved 85.77% R² on unseen validation data
-- ✅ Consolidated codebase and removed redundant files
-- ✅ Production-ready model serialization
-
 ---
 
-## 🔄 Model Retraining
+##  Model Retraining
 
 To retrain the model with new data:
 
@@ -418,26 +349,9 @@ python train_tabular.py
 
 ---
 
-## 📞 Support & Issues
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Review API endpoint documentation
-3. Verify data format in requests
-4. Check model is saved in `model/price_model.pkl`
-5. Ensure all 18 parameters are provided to `/predict`
-
----
-
-## 📄 License
-
-This project is provided as-is for property price prediction purposes.
-
----
-
-**Last Updated**: December 2025  
-**Model Status**: Production Ready ✅  
-**Accuracy**: 85.77% R² ⭐  
+**Last Updated**: January 2025  
+**Model Status**: Production Ready  
+**Accuracy**: 85.77% R² 
 **Features**: 18 | **Training Samples**: 12,967 | **Validation Samples**: 3,242
 
 
