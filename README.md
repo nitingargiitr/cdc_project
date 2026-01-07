@@ -6,21 +6,21 @@ An AI-powered property price prediction system using machine learning with 85.77
 
 ##  Quick Stats
 
-- ** Model Accuracy**: 85.77% R² on unseen validation data
-- ** Features Used**: 18 property attributes
-- ** Training Samples**: 12,967
-- ** Validation Samples**: 3,242
-- ** Test Predictions**: 5,404
+- **Model Accuracy**: 85.77% R² on unseen validation data
+- **Features Used**: 18 property attributes
+- **Training Samples**: 12,967
+- **Validation Samples**: 3,242
+- **Test Predictions**: 5,404
 
 ---
 
 ##  Features
 
-- ** Interactive Map Interface** - Streamlit web UI with folium maps for location selection
-- ** ML Price Prediction** - RandomForest model with 18 property features
-- ** Satellite Integration** - Optional Sentinel Hub imagery (NDVI, NDWI calculation)
-- ** Location Features** - Waterfront, view, condition, grade, and proximity metrics
-- ** Production Ready** - Serialized model in `model/price_model.pkl`
+- **Interactive Map Interface** - Streamlit web UI with folium maps for location selection
+- **ML Price Prediction** - RandomForest model with 18 property features
+- **Satellite Integration** - Optional Sentinel Hub imagery (NDVI, NDWI calculation)
+- **Location Features** - Waterfront, view, condition, grade, and proximity metrics
+- **Production Ready** - Serialized model in `model/price_model.pkl`
 
 ---
 
@@ -349,7 +349,7 @@ python train_tabular.py
 
 ---
 
-**Last Updated**: December 2025  
+**Last Updated**: January 2025  
 **Model Status**: Production Ready  
 **Accuracy**: 85.77% R² 
 **Features**: 18 | **Training Samples**: 12,967 | **Validation Samples**: 3,242
